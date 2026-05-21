@@ -7,10 +7,26 @@ import {
   Popup,
 } from "react-leaflet";
 import L from "leaflet";
+import {
+  AlertTriangle,
+  Boxes,
+  CalendarDays,
+  CheckCircle2,
+  ChevronDown,
+  Clock3,
+  Loader2,
+  Map as MapIcon,
+  MapPin,
+  Navigation,
+  PackageCheck,
+  RefreshCw,
+  Route,
+  Truck,
+  XCircle,
+} from "lucide-react";
 import { getRouteHistory, getRouteHistoryDetail } from "../services/api";
 import { getSharedSocket, useSocket } from "../hooks/useSocket";
 
-// Leaflet icon fix
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -41,130 +57,555 @@ function samplePoints(points, maxPoints) {
 }
 
 const css = `
-  
-
   .rh-root {
+    --rh-bg: #f4f3f8;
+    --rh-card: #ffffff;
+    --rh-ink: #101318;
+    --rh-muted: #7d8490;
+    --rh-line: #e7e7ef;
+    --rh-teal: #149d80;
+    --rh-teal-dark: #0d8069;
+    --rh-teal-soft: #e7f6f1;
+    --rh-blue: #4f96ce;
+    --rh-blue-dark: #286b9d;
+    --rh-blue-soft: #e8f2fb;
+    --rh-red: #e6535d;
+    --rh-red-soft: #fff0f1;
+    --rh-amber: #f4a62a;
+    --rh-amber-soft: #fff8e8;
+    --rh-purple: #8b7bd8;
+    --rh-shadow: 0 8px 24px rgba(24, 33, 49, .06);
     min-height: 100vh;
-    background: #f0f4f8;
-    font-family: 'Geist', 'DM Sans', sans-serif;
-    color: #1a2035;
-    padding: 32px;
+    overflow-x: hidden;
+    padding: 28px 32px;
+    background: var(--rh-bg);
+    color: var(--rh-ink);
   }
 
-  /* HEADER */
-  .rh-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; flex-wrap: wrap; gap: 14px; }
-  .rh-header h1 { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 4px; }
-  .rh-header p  { color: #5e6a85; font-size: 0.9rem; }
+  .rh-root,
+  .rh-root * {
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  .rh-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .rh-header h1 {
+    margin: 0 0 5px;
+    color: var(--rh-ink);
+    font-size: clamp(1.35rem, 5vw, 1.8rem);
+    font-weight: 900;
+    line-height: 1.12;
+  }
+
+  .rh-header p {
+    margin: 0;
+    max-width: 720px;
+    color: var(--rh-muted);
+    font-size: .88rem;
+    line-height: 1.45;
+  }
 
   .rh-btn {
-    padding: 9px 18px; border-radius: 8px; border: 1px solid #e4e9f0;
-    background: #fff; font-family: inherit; font-size: 0.85rem; font-weight: 500;
-    color: #1a2035; cursor: pointer; transition: all .2s;
-    display: inline-flex; align-items: center; gap: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 38px;
+    padding: 0 13px;
+    border: 1px solid rgba(231,231,239,.92);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--rh-ink);
+    cursor: pointer;
+    font: inherit;
+    font-size: .82rem;
+    font-weight: 900;
+    white-space: nowrap;
+    transition: background .2s ease, border-color .2s ease, color .2s ease, transform .2s ease, box-shadow .2s ease;
   }
-  .rh-btn:hover { background: #f0f4f8; }
-  .rh-btn-green { background: #00D68F; color: #0B1A14; border-color: #00D68F; }
-  .rh-btn-green:hover { background: #00A870; }
 
-  /* KPI */
-  .rh-kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 16px; }
+  .rh-btn:hover {
+    background: #f8f8fb;
+    transform: translateY(-1px);
+  }
+
+  .rh-btn:disabled {
+    cursor: not-allowed;
+    opacity: .6;
+    transform: none;
+  }
+
+  .rh-btn-green,
+  .rh-btn-blue {
+    border-color: rgba(20,157,128,.2);
+    background: var(--rh-teal);
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(20,157,128,.16);
+  }
+
+  .rh-btn-green:hover,
+  .rh-btn-blue:hover {
+    background: var(--rh-teal-dark);
+  }
+
+  .rh-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .rh-kpi-card,
+  .rh-filters,
+  .rh-sidebar,
+  .rh-map-card {
+    border: 1px solid rgba(231,231,239,.92);
+    background: rgba(255,255,255,.96);
+    box-shadow: var(--rh-shadow);
+  }
+
   .rh-kpi-card {
-    background: #fff; border-radius: 14px; border: 1px solid #e4e9f0;
-    padding: 20px; position: relative; overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,.04); transition: transform .2s;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    border-radius: 18px;
+    transition: transform .2s ease, box-shadow .2s ease;
   }
-  .rh-kpi-card:hover { transform: translateY(-2px); }
+
+  .rh-kpi-card:hover {
+    transform: translateY(-1px);
+  }
+
   .rh-kpi-card::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-    background: linear-gradient(90deg, #1A6EFF, #00D68F);
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
   }
-  .rh-kpi-label { font-size: 0.75rem; font-weight: 600; color: #5e6a85; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
-  .rh-kpi-val   { font-size: 2rem; font-weight: 800; color: #1a2035; line-height: 1; }
 
-  /* FILTERS */
+  .rh-kpi-card:nth-child(1)::before { background: var(--rh-blue); }
+  .rh-kpi-card:nth-child(2)::before { background: var(--rh-teal); }
+  .rh-kpi-card:nth-child(3)::before { background: var(--rh-purple); }
+  .rh-kpi-card:nth-child(4)::before { background: var(--rh-amber); }
+
+  .rh-kpi-label {
+    margin-bottom: 7px;
+    color: var(--rh-muted);
+    font-size: .72rem;
+    font-weight: 900;
+    letter-spacing: .04em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  .rh-kpi-val {
+    color: var(--rh-ink);
+    font-size: clamp(1.25rem, 5vw, 1.65rem);
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .rh-kpi-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border-radius: 12px;
+    background: var(--rh-teal-soft);
+    color: var(--rh-teal-dark);
+  }
+
   .rh-filters {
-    background: #fff; border-radius: 14px; border: 1px solid #e4e9f0;
-    padding: 18px 22px; margin-bottom: 16px;
-    display: grid; grid-template-columns: 1fr 1fr auto; gap: 14px; align-items: end;
-    box-shadow: 0 2px 8px rgba(0,0,0,.04);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: end;
+    margin-bottom: 16px;
+    padding: 14px;
+    border-radius: 18px;
   }
-  .rh-field label { font-size: 0.75rem; font-weight: 600; color: #5e6a85; text-transform: uppercase; letter-spacing: .04em; display: block; margin-bottom: 6px; }
-  .rh-field select, .rh-field input {
-    width: 100%; padding: 9px 12px; border: 1.5px solid #e4e9f0; border-radius: 8px;
-    font-family: inherit; font-size: 0.88rem; color: #1a2035; background: #f8fafc;
-    outline: none; transition: border-color .2s;
+
+  .rh-field label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    color: var(--rh-muted);
+    font-size: .74rem;
+    font-weight: 900;
+    letter-spacing: .04em;
+    line-height: 1.2;
+    text-transform: uppercase;
   }
-  .rh-field select:focus, .rh-field input:focus { border-color: #1A6EFF; background: #fff; }
 
-  /* MAIN GRID */
-  .rh-main { display: grid; grid-template-columns: 300px 1fr; gap: 16px; }
+  .rh-select-wrap {
+    position: relative;
+  }
 
-  /* SIDEBAR */
+  .rh-field select {
+    width: 100%;
+    min-height: 40px;
+    padding: 0 36px 0 12px;
+    border: 1px solid rgba(231,231,239,.92);
+    border-radius: 12px;
+    background: #f8f8fb;
+    color: var(--rh-ink);
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    font: inherit;
+    font-size: .84rem;
+    font-weight: 800;
+    transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+  }
+
+  .rh-field select:focus {
+    border-color: rgba(20,157,128,.72);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(20,157,128,.12);
+  }
+
+  .rh-select-chevron {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    color: var(--rh-muted);
+    pointer-events: none;
+    transform: translateY(-50%);
+  }
+
+  .rh-error {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    border: 1px solid rgba(230,83,93,.24);
+    border-radius: 12px;
+    background: var(--rh-red-soft);
+    color: var(--rh-red);
+    font-size: .82rem;
+    font-weight: 800;
+  }
+
+  .rh-main {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .rh-sidebar,
+  .rh-map-card {
+    overflow: hidden;
+    border-radius: 18px;
+  }
+
   .rh-sidebar {
-    background: #fff; border-radius: 14px; border: 1px solid #e4e9f0;
-    box-shadow: 0 2px 8px rgba(0,0,0,.04); overflow: hidden;
-    display: flex; flex-direction: column; height: 580px;
+    display: flex;
+    flex-direction: column;
+    height: 580px;
   }
-  .rh-sidebar-head {
-    padding: 16px 18px; border-bottom: 1px solid #f0f4f8;
-    font-size: 0.95rem; font-weight: 700;
-  }
-  .rh-sidebar-list { flex: 1; overflow-y: auto; padding: 10px; }
 
-  .rh-empty {
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; height: 100%; gap: 10px; color: #a0aec0; text-align: center;
-    padding: 20px;
+  .rh-sidebar-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 15px 16px;
+    border-bottom: 1px solid rgba(231,231,239,.8);
+    color: var(--rh-ink);
+    font-size: .96rem;
+    font-weight: 900;
   }
-  .rh-empty-icon { font-size: 2.5rem; }
-  .rh-empty h3   { font-size: 0.95rem; font-weight: 700; color: #5e6a85; }
-  .rh-empty p    { font-size: 0.82rem; line-height: 1.6; }
+
+  .rh-sidebar-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .rh-sidebar-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: var(--rh-blue-soft);
+    color: var(--rh-blue-dark);
+    font-size: .72rem;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .rh-sidebar-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+  }
+
+  .rh-empty,
+  .rh-map-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    height: 100%;
+    padding: 22px;
+    color: var(--rh-muted);
+    font-size: .84rem;
+    font-weight: 800;
+    line-height: 1.55;
+    text-align: center;
+  }
+
+  .rh-empty-icon,
+  .rh-map-placeholder-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    background: var(--rh-teal-soft);
+    color: var(--rh-teal-dark);
+  }
+
+  .rh-empty-icon svg.loading {
+    animation: rhSpin .9s linear infinite;
+  }
+
+  @keyframes rhSpin {
+    to { transform: rotate(360deg); }
+  }
+
+  .rh-empty h3,
+  .rh-map-placeholder h2 {
+    margin: 0;
+    color: var(--rh-ink);
+    font-size: .96rem;
+    font-weight: 900;
+  }
+
+  .rh-empty p,
+  .rh-map-placeholder p {
+    margin: 0;
+    color: var(--rh-muted);
+    font-size: .82rem;
+    line-height: 1.55;
+  }
 
   .rh-route-item {
-    border: 1px solid #e4e9f0; border-radius: 10px; padding: 12px 14px;
-    margin-bottom: 8px; cursor: pointer; transition: all .2s; position: relative; overflow: hidden;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 8px;
+    padding: 12px 13px 12px 15px;
+    border: 1px solid rgba(231,231,239,.92);
+    border-radius: 14px;
+    background: #fff;
+    cursor: pointer;
+    transition: background .2s ease, border-color .2s ease, transform .2s ease, box-shadow .2s ease;
   }
-  .rh-route-item:hover   { border-color: #1A6EFF; background: #f8fbff; }
-  .rh-route-item.active  { border-color: #1A6EFF; background: #eff5ff; }
-  .rh-route-item-accent  { position: absolute; top: 0; left: 0; bottom: 0; width: 3px; background: #1A6EFF; border-radius: 3px 0 0 3px; }
-  .rh-route-name         { font-weight: 700; font-size: 0.88rem; margin-bottom: 3px; padding-left: 6px; }
-  .rh-route-meta         { font-size: 0.75rem; color: #5e6a85; padding-left: 6px; }
+
+  .rh-route-item:hover {
+    border-color: rgba(20,157,128,.22);
+    background: #fbfcfd;
+    transform: translateY(-1px);
+  }
+
+  .rh-route-item.active {
+    border-color: rgba(20,157,128,.32);
+    background: var(--rh-teal-soft);
+    box-shadow: 0 8px 18px rgba(20,157,128,.08);
+  }
+
+  .rh-route-item-accent {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: var(--rh-teal);
+  }
+
+  .rh-route-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    color: var(--rh-ink);
+    font-size: .88rem;
+    font-weight: 900;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .rh-route-meta {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 7px;
+    color: var(--rh-muted);
+    font-size: .74rem;
+    font-weight: 800;
+    line-height: 1.3;
+  }
+
   .rh-route-status {
-    display: inline-flex; align-items: center; gap: 3px;
-    font-size: 0.7rem; font-weight: 600; padding: 2px 7px; border-radius: 999px; margin-top: 6px; margin-left: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: .7rem;
+    font-weight: 900;
+    line-height: 1.2;
+    white-space: nowrap;
   }
-  .rh-status-done     { background: #e6faf3; color: #00A870; }
-  .rh-status-cancelled{ background: #fff0f1; color: #E53E3E; }
-  .rh-status-active   { background: #eff5ff; color: #1A6EFF; }
 
-  /* MAP CARD */
+  .rh-status-done { background: var(--rh-teal-soft); color: var(--rh-teal-dark); }
+  .rh-status-cancelled { background: var(--rh-red-soft); color: var(--rh-red); }
+  .rh-status-active { background: var(--rh-blue-soft); color: var(--rh-blue-dark); }
+
   .rh-map-card {
-    background: #fff; border-radius: 14px; border: 1px solid #e4e9f0;
-    box-shadow: 0 2px 8px rgba(0,0,0,.04); overflow: hidden;
-    height: 580px; display: flex; flex-direction: column;
+    display: flex;
+    flex-direction: column;
+    height: 580px;
   }
-  .rh-map-header {
-    padding: 14px 18px; border-bottom: 1px solid #f0f4f8;
-    display: flex; justify-content: space-between; align-items: center;
-    font-size: 0.9rem; font-weight: 700; flex-shrink: 0;
-  }
-  .rh-map-body { flex: 1; position: relative; }
-  .rh-map-placeholder {
-    height: 100%; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 10px;
-    color: #a0aec0; text-align: center; padding: 20px;
-  }
-  .rh-map-placeholder-icon { font-size: 3rem; }
-  .rh-map-placeholder h2   { font-size: 1rem; font-weight: 700; color: #5e6a85; }
-  .rh-map-placeholder p    { font-size: 0.82rem; line-height: 1.6; }
 
-  @media (max-width: 860px) {
-    .rh-main { grid-template-columns: 1fr; }
-    .rh-kpi-grid { grid-template-columns: repeat(2,1fr); }
-    .rh-filters  { grid-template-columns: 1fr 1fr; }
-    .rh-map-card, .rh-sidebar { height: 400px; }
+  .rh-map-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(231,231,239,.8);
+  }
+
+  .rh-map-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--rh-ink);
+    font-size: .96rem;
+    font-weight: 900;
+    line-height: 1.25;
+  }
+
+  .rh-map-subtitle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--rh-muted);
+    font-size: .78rem;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+  }
+
+  .rh-map-body {
+    position: relative;
+    flex: 1;
+  }
+
+  @media(max-width: 860px) {
+    .rh-root {
+      padding: 16px;
+    }
+
+    .rh-main {
+      grid-template-columns: 1fr;
+    }
+
+    .rh-kpi-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .rh-filters {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .rh-filters .rh-btn {
+      grid-column: 1 / -1;
+      width: 100%;
+    }
+
+    .rh-map-card,
+    .rh-sidebar {
+      height: 430px;
+    }
+  }
+
+  @media(max-width: 700px) {
+    .rh-header {
+      align-items: stretch;
+      flex-direction: column;
+      margin-bottom: 16px;
+    }
+
+    .rh-header h1 {
+      font-size: 1.45rem;
+    }
+
+    .rh-header p {
+      font-size: .82rem;
+    }
+
+    .rh-btn {
+      width: 100%;
+      min-height: 38px;
+      padding: 0 10px;
+      font-size: .78rem;
+    }
+
+    .rh-kpi-grid,
+    .rh-filters {
+      grid-template-columns: 1fr;
+    }
+
+    .rh-kpi-card,
+    .rh-filters,
+    .rh-sidebar,
+    .rh-map-card {
+      border-radius: 16px;
+    }
+
+    .rh-map-header {
+      align-items: flex-start;
+      flex-direction: column;
+      padding: 12px 14px;
+    }
+
+    .rh-map-card,
+    .rh-sidebar {
+      height: 390px;
+    }
   }
 `;
+
+function statusMeta(status) {
+  if (status === "completed") {
+    return { className: "rh-status-done", label: "Completed", icon: CheckCircle2 };
+  }
+  if (status === "cancelled") {
+    return { className: "rh-status-cancelled", label: "Cancelled", icon: XCircle };
+  }
+  return { className: "rh-status-active", label: "Live", icon: Navigation };
+}
 
 function RouteHistory() {
   const [selectedRoute, setSelectedRoute] = useState(null);
@@ -291,109 +732,172 @@ function RouteHistory() {
     };
   }, [selectedRoute?.id]);
 
+  const kpiItems = [
+    { label: "Total Routes", val: kpis.totalRoutes || 0, icon: Route },
+    { label: "Completed", val: kpis.completed || 0, icon: CheckCircle2 },
+    { label: "Total Distance", val: `${kpis.totalDistance || 0} km`, icon: Navigation },
+    { label: "Containers Collected", val: kpis.containersCollected || 0, icon: Boxes },
+  ];
+
   return (
     <>
       <style>{css}</style>
       <div className="rh-root">
-
-        {/* HEADER */}
         <div className="rh-header">
           <div>
             <h1>Route History</h1>
             <p>View and analyse completed collection routes</p>
           </div>
-          <button className="rh-btn rh-btn-blue" onClick={loadRoutes} disabled={loading}>
-            {loading ? " Loading..." : " Refresh"}
+          <button className="rh-btn rh-btn-blue" onClick={loadRoutes} disabled={loading} type="button">
+            {loading ? (
+              <>
+                <Loader2 size={15} strokeWidth={2.35} aria-hidden="true" />
+                Loading...
+              </>
+            ) : (
+              <>
+                <RefreshCw size={15} strokeWidth={2.35} aria-hidden="true" />
+                Refresh
+              </>
+            )}
           </button>
         </div>
 
-        {/* KPI */}
         <div className="rh-kpi-grid">
-          {[
-            { label: "Total Routes",         val: kpis.totalRoutes || 0 },
-            { label: "Completed",            val: kpis.completed || 0 },
-            { label: "Total Distance",       val: `${kpis.totalDistance || 0} km` },
-            { label: "Containers Collected", val: kpis.containersCollected || 0 },
-          ].map((k) => (
-            <div className="rh-kpi-card" key={k.label}>
-              <div className="rh-kpi-label">{k.label}</div>
-              <div className="rh-kpi-val">{k.val}</div>
-            </div>
-          ))}
+          {kpiItems.map((k) => {
+            const Icon = k.icon;
+            return (
+              <div className="rh-kpi-card" key={k.label}>
+                <div>
+                  <div className="rh-kpi-label">{k.label}</div>
+                  <div className="rh-kpi-val">{k.val}</div>
+                </div>
+                <span className="rh-kpi-icon">
+                  <Icon size={20} strokeWidth={2.35} aria-hidden="true" />
+                </span>
+              </div>
+            );
+          })}
         </div>
 
-        {/* FILTERS */}
         <div className="rh-filters">
           <div className="rh-field">
-            <label>Period</label>
-            <select value={period} onChange={e => setPeriod(e.target.value)}>
-              <option value="all">All time</option>
-              <option value="today">Today</option>
-              <option value="week">Last week</option>
-              <option value="month">Last month</option>
-            </select>
+            <label>
+              <CalendarDays size={13} strokeWidth={2.35} aria-hidden="true" />
+              Period
+            </label>
+            <div className="rh-select-wrap">
+              <select value={period} onChange={e => setPeriod(e.target.value)}>
+                <option value="all">All time</option>
+                <option value="today">Today</option>
+                <option value="week">Last week</option>
+                <option value="month">Last month</option>
+              </select>
+              <ChevronDown className="rh-select-chevron" size={15} strokeWidth={2.35} aria-hidden="true" />
+            </div>
           </div>
           <div className="rh-field">
-            <label>Status</label>
-            <select value={status} onChange={e => setStatus(e.target.value)}>
-              <option value="all">All statuses</option>
-              <option value="active">Active</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+            <label>
+              <Truck size={13} strokeWidth={2.35} aria-hidden="true" />
+              Status
+            </label>
+            <div className="rh-select-wrap">
+              <select value={status} onChange={e => setStatus(e.target.value)}>
+                <option value="all">All statuses</option>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              <ChevronDown className="rh-select-chevron" size={15} strokeWidth={2.35} aria-hidden="true" />
+            </div>
           </div>
-          <button className="rh-btn" onClick={loadRoutes} disabled={loading}>Apply Filters</button>
+          <button className="rh-btn" onClick={loadRoutes} disabled={loading} type="button">
+            <RefreshCw size={15} strokeWidth={2.35} aria-hidden="true" />
+            Apply Filters
+          </button>
         </div>
-        {error && <div style={{ marginBottom: 12, color: "#B91C1C", fontSize: "0.82rem" }}>{error}</div>}
 
-        {/* MAIN */}
+        {error && (
+          <div className="rh-error">
+            <AlertTriangle size={15} strokeWidth={2.35} aria-hidden="true" />
+            {error}
+          </div>
+        )}
+
         <div className="rh-main">
-
-          {/* SIDEBAR */}
           <div className="rh-sidebar">
-            <div className="rh-sidebar-head">Routes ({routes.length})</div>
+            <div className="rh-sidebar-head">
+              <span className="rh-sidebar-title">
+                <Route size={18} strokeWidth={2.35} aria-hidden="true" />
+                Routes
+              </span>
+              <span className="rh-sidebar-count">{routes.length}</span>
+            </div>
             <div className="rh-sidebar-list">
               {routes.length === 0 ? (
                 <div className="rh-empty">
-                  <div className="rh-empty-icon">🛣️</div>
+                  <span className="rh-empty-icon">
+                    {loading ? (
+                      <Loader2 className="loading" size={22} strokeWidth={2.35} aria-hidden="true" />
+                    ) : (
+                      <Route size={22} strokeWidth={2.35} aria-hidden="true" />
+                    )}
+                  </span>
                   <h3>{loading ? "Loading routes" : "No routes found"}</h3>
                   <p>{loading ? "Fetching route history from the system." : "Routes will appear here once collection trips are recorded in the system."}</p>
                 </div>
               ) : (
-                routes.map((route) => (
-                  <div
-                    key={route.id}
-                    className={`rh-route-item ${selectedRoute?.id === route.id ? "active" : ""}`}
-                    onClick={() => selectRoute(route)}
-                  >
-                    <div className="rh-route-item-accent" />
-                    <div className="rh-route-name">{route.name}</div>
-                    <div className="rh-route-meta">{route.distance} km · {route.bins} bins</div>
-                    <span className={`rh-route-status ${
-                      route.status === "completed" ? "rh-status-done" :
-                      route.status === "cancelled" ? "rh-status-cancelled" : "rh-status-active"
-                    }`}>
-                      {route.status === "completed" ? "✓ Completed" :
-                       route.status === "cancelled" ? "✕ Cancelled" : "● LIVE"}
-                    </span>
-                  </div>
-                ))
+                routes.map((route) => {
+                  const meta = statusMeta(route.status);
+                  const StatusIcon = meta.icon;
+
+                  return (
+                    <div
+                      key={route.id}
+                      className={`rh-route-item ${selectedRoute?.id === route.id ? "active" : ""}`}
+                      onClick={() => selectRoute(route)}
+                    >
+                      <div className="rh-route-item-accent" />
+                      <div className="rh-route-name">
+                        <Route size={14} strokeWidth={2.35} aria-hidden="true" />
+                        {route.name}
+                      </div>
+                      <div className="rh-route-meta">
+                        <Navigation size={12} strokeWidth={2.35} aria-hidden="true" />
+                        {route.distance} km / {route.bins} bins
+                      </div>
+                      <span className={`rh-route-status ${meta.className}`}>
+                        <StatusIcon size={12} strokeWidth={2.45} aria-hidden="true" />
+                        {meta.label}
+                      </span>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>
 
-          {/* MAP */}
           <div className="rh-map-card">
             <div className="rh-map-header">
-              <span> Route Map</span>
-              {selectedRoute && <span style={{ fontSize: "0.8rem", color: "#5e6a85" }}>{selectedRoute.name}</span>}
+              <span className="rh-map-title">
+                <MapIcon size={18} strokeWidth={2.35} aria-hidden="true" />
+                Route Map
+              </span>
+              {selectedRoute && (
+                <span className="rh-map-subtitle">
+                  <MapPin size={13} strokeWidth={2.35} aria-hidden="true" />
+                  {selectedRoute.name}
+                </span>
+              )}
             </div>
             <div className="rh-map-body">
               {!selectedRoute || selectedCoordinates.length === 0 ? (
                 <div className="rh-map-placeholder">
-                  <div className="rh-map-placeholder-icon"></div>
+                  <span className="rh-map-placeholder-icon">
+                    <MapPin size={22} strokeWidth={2.35} aria-hidden="true" />
+                  </span>
                   <h2>{selectedRoute ? "No GPS points available" : "No route selected"}</h2>
-                  <p>{selectedRoute ? "This route has no usable coordinates yet." : <>Select a route from the list on the left<br />to view it on the map.</>}</p>
+                  <p>{selectedRoute ? "This route has no usable coordinates yet." : "Select a route from the list on the left to view it on the map."}</p>
                 </div>
               ) : (
                 <MapContainer
@@ -408,9 +912,9 @@ function RouteHistory() {
                   />
                   <Polyline
                     positions={polylineCoordinates}
-                    color="#1A6EFF"
+                    color="#149d80"
                     weight={4}
-                    opacity={0.8}
+                    opacity={0.85}
                   />
                   {markerCoordinates.map((point, i) => (
                     <Marker key={i} position={point}>
@@ -421,7 +925,6 @@ function RouteHistory() {
               )}
             </div>
           </div>
-
         </div>
       </div>
     </>

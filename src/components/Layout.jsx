@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Menu } from "lucide-react";
 import Sidebar from "./Sidebar";
 import { getMe } from "../services/api";
 
@@ -29,14 +30,7 @@ function getPageMeta(pathname) {
 }
 
 function MenuIcon() {
-  return (
-    <svg className="mobile-header-menu-icon" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="4" y1="6" x2="20" y2="6" />
-      <line x1="4" y1="12" x2="20" y2="12" />
-      <line x1="4" y1="18" x2="20" y2="18" />
-    </svg>
-  );
+  return <Menu className="mobile-header-menu-icon" strokeWidth={1.9} aria-hidden="true" />;
 }
 
 const Layout = () => {

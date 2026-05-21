@@ -1,178 +1,507 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Link } from 'react-router-dom';
+import {
+  AlertCircle,
+  AlertTriangle,
+  Boxes,
+  CheckCircle2,
+  ChevronDown,
+  Clock3,
+  Gauge,
+  Loader2,
+  PackageCheck,
+  RefreshCw,
+  Scale,
+  SlidersHorizontal,
+  Thermometer,
+} from "lucide-react";
 import { useSocket } from "../hooks/useSocket";
 import { getBins } from "../services/api";
 
-
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
-
   .ct-root {
+    --ct-bg: #f4f3f8;
+    --ct-card: #ffffff;
+    --ct-ink: #101318;
+    --ct-muted: #7d8490;
+    --ct-line: #e7e7ef;
+    --ct-teal: #149d80;
+    --ct-teal-dark: #0d8069;
+    --ct-teal-soft: #e7f6f1;
+    --ct-blue: #4f96ce;
+    --ct-blue-dark: #286b9d;
+    --ct-blue-soft: #e8f2fb;
+    --ct-red: #e6535d;
+    --ct-red-soft: #fff0f1;
+    --ct-amber: #f4a62a;
+    --ct-amber-soft: #fff8e8;
+    --ct-shadow: 0 8px 24px rgba(24, 33, 49, .06);
     min-height: 100vh;
-    background: #f0f4f8;
-    font-family: 'DM Sans', sans-serif;
-    color: #1a2035;
-    padding: 32px;
+    overflow-x: hidden;
+    padding: 28px 32px;
+    background: var(--ct-bg);
+    color: var(--ct-ink);
   }
 
-  /* PAGE HEADER */
-  .ct-page-header { margin-bottom: 28px; }
+  .ct-root,
+  .ct-root * {
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  .ct-page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
   .ct-page-header h1 {
-    font-size: 1.9rem; font-weight: 800;
-    letter-spacing: -0.03em; color: #1a2035;
-    margin-bottom: 4px;
+    margin: 0 0 5px;
+    color: var(--ct-ink);
+    font-size: clamp(1.35rem, 5vw, 1.8rem);
+    font-weight: 900;
+    line-height: 1.12;
   }
-  .ct-page-header p { color: #5e6a85; font-size: 0.9rem; }
 
-  /* TOOLBAR */
+  .ct-page-header p {
+    margin: 0;
+    max-width: 700px;
+    color: var(--ct-muted);
+    font-size: .88rem;
+    line-height: 1.45;
+  }
+
+  .ct-header-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    border: 1px solid rgba(20,157,128,.18);
+    border-radius: 16px;
+    background: var(--ct-teal-soft);
+    color: var(--ct-teal-dark);
+    box-shadow: var(--ct-shadow);
+  }
+
   .ct-toolbar {
-    display: flex; align-items: center; justify-content: space-between;
-    flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding: 12px 14px;
+    border: 1px solid rgba(231, 231, 239, .92);
+    border-radius: 18px;
+    background: rgba(255,255,255,.94);
+    box-shadow: var(--ct-shadow);
   }
-  .ct-toolbar-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
-  .ct-btn {
-    padding: 8px 16px; border-radius: 8px; border: 1px solid #e4e9f0;
-    background: #fff; font-family: 'DM Sans', sans-serif;
-    font-size: 0.85rem; font-weight: 500; color: #1a2035;
-    cursor: pointer; transition: all .2s; display: inline-flex; align-items: center; gap: 6px;
+  .ct-toolbar-left {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
   }
-  .ct-btn:hover { background: #f0f4f8; }
-  .ct-btn-primary { background: #1A6EFF; color: #fff; border-color: #1A6EFF; }
-  .ct-btn-primary:hover { background: #0F4ECC; }
+
+  .ct-sort-wrap {
+    position: relative;
+    min-width: min(100%, 250px);
+  }
 
   .ct-sort-select {
-    padding: 8px 12px; border-radius: 8px; border: 1px solid #e4e9f0;
-    background: #fff; font-family: 'DM Sans', sans-serif;
-    font-size: 0.85rem; color: #1a2035; cursor: pointer;
-    outline: none; appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235e6a85' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 10px center;
-    padding-right: 30px;
+    width: 100%;
+    min-height: 38px;
+    padding: 0 36px 0 12px;
+    border: 1px solid rgba(231,231,239,.92);
+    border-radius: 12px;
+    background: #f8f8fb;
+    color: var(--ct-ink);
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    font: inherit;
+    font-size: .82rem;
+    font-weight: 800;
+    transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+  }
+
+  .ct-sort-select:focus {
+    border-color: rgba(20,157,128,.72);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(20,157,128,.12);
+  }
+
+  .ct-sort-chevron {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    color: var(--ct-muted);
+    pointer-events: none;
+    transform: translateY(-50%);
   }
 
   .ct-count {
-    font-size: 0.82rem; color: #5e6a85;
-    background: #f0f4f8; padding: 6px 12px; border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 0 11px;
+    border-radius: 999px;
+    background: var(--ct-blue-soft);
+    color: var(--ct-blue-dark);
+    font-size: .76rem;
+    font-weight: 900;
+    white-space: nowrap;
   }
 
-  /* GRID */
+  .ct-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 38px;
+    padding: 0 13px;
+    border: 1px solid rgba(231,231,239,.92);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--ct-ink);
+    cursor: pointer;
+    font: inherit;
+    font-size: .82rem;
+    font-weight: 900;
+    white-space: nowrap;
+    transition: background .2s ease, border-color .2s ease, color .2s ease, transform .2s ease, box-shadow .2s ease;
+  }
+
+  .ct-btn:hover {
+    background: #f8f8fb;
+    transform: translateY(-1px);
+  }
+
+  .ct-btn-primary {
+    border-color: rgba(20,157,128,.2);
+    background: var(--ct-teal);
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(20,157,128,.16);
+  }
+
+  .ct-btn-primary:hover {
+    background: var(--ct-teal-dark);
+  }
+
   .ct-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
     gap: 16px;
   }
 
-  /* BIN CARD */
   .ct-card {
-    background: #fff; border-radius: 14px;
-    border: 1px solid #e4e9f0;
-    padding: 20px; position: relative; overflow: hidden;
-    transition: transform .25s, box-shadow .25s;
+    position: relative;
+    overflow: hidden;
+    padding: 18px;
+    border: 1px solid rgba(231,231,239,.92);
+    border-radius: 18px;
+    background: rgba(255,255,255,.96);
+    box-shadow: var(--ct-shadow);
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
   }
-  .ct-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,.09); }
 
-  /* Accent bar on top */
+  .ct-card:hover {
+    border-color: rgba(20,157,128,.18);
+    box-shadow: 0 12px 30px rgba(24, 33, 49, .09);
+    transform: translateY(-2px);
+  }
+
   .ct-card-accent {
-    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
   }
 
-  /* CARD HEADER */
   .ct-card-head {
-    display: flex; justify-content: space-between;
-    align-items: flex-start; margin-bottom: 4px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 5px;
   }
+
+  .ct-card-id-wrap {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+
+  .ct-card-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    border-radius: 13px;
+    background: var(--ct-teal-soft);
+    color: var(--ct-teal-dark);
+  }
+
   .ct-card-id {
-    font-size: 1.05rem; font-weight: 800; color: #1a2035;
+    color: var(--ct-ink);
+    font-size: .95rem;
+    font-weight: 900;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
   }
+
   .ct-status-badge {
-    display: inline-flex; align-items: center; gap: 4px;
-    font-size: 0.72rem; font-weight: 600; padding: 3px 9px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 9px;
     border-radius: 999px;
+    font-size: .7rem;
+    font-weight: 900;
+    line-height: 1.2;
+    white-space: nowrap;
   }
-  .ct-status-active   { background: #e6faf3; color: #00A870; }
-  .ct-status-warning  { background: #fff7e6; color: #D97706; }
-  .ct-status-critical { background: #fff0f1; color: #E53E3E; }
+
+  .ct-status-active { background: var(--ct-teal-soft); color: var(--ct-teal-dark); }
+  .ct-status-warning { background: var(--ct-amber-soft); color: #8a5a0a; }
+  .ct-status-critical { background: var(--ct-red-soft); color: var(--ct-red); }
 
   .ct-card-sub {
-    font-size: 0.75rem; color: #5e6a85; margin-bottom: 16px;
+    margin: 0 0 15px 43px;
+    color: var(--ct-muted);
+    font-size: .74rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
   }
 
-  /* FULLNESS */
   .ct-fullness-header {
-    display: flex; justify-content: space-between;
-    font-size: 0.78rem; font-weight: 500; margin-bottom: 6px;
-    color: #5e6a85;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 7px;
+    color: var(--ct-muted);
+    font-size: .78rem;
+    font-weight: 800;
   }
-  .ct-fullness-val { font-weight: 700; }
+
+  .ct-fullness-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ct-fullness-val {
+    color: var(--ct-ink);
+    font-weight: 900;
+  }
+
   .ct-bar-track {
-    height: 8px; background: #e8edf5; border-radius: 99px;
-    overflow: hidden; margin-bottom: 18px;
+    height: 8px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    border-radius: 999px;
+    background: #eceef4;
   }
+
   .ct-bar-fill {
-    height: 100%; border-radius: 99px;
+    height: 100%;
+    max-width: 100%;
+    border-radius: 999px;
     transition: width .6s cubic-bezier(.22,1,.36,1);
   }
 
-  /* STATS ROW */
   .ct-stats-row {
-    display: grid; grid-template-columns: repeat(3,1fr);
-    gap: 8px; margin-bottom: 16px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 14px;
   }
+
   .ct-stat {
-    background: #f8fafc; border-radius: 8px; padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 54px;
+    padding: 9px 10px;
+    border: 1px solid rgba(231,231,239,.72);
+    border-radius: 14px;
+    background: #f8f8fb;
+  }
+
+  .ct-stat-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    border-radius: 10px;
+    background: #fff;
+    color: var(--ct-teal-dark);
+  }
+
+  .ct-stat-val {
+    color: var(--ct-ink);
+    font-size: .84rem;
+    font-weight: 900;
+    line-height: 1.2;
+  }
+
+  .ct-stat-label {
+    margin-top: 2px;
+    color: var(--ct-muted);
+    font-size: .68rem;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+
+  .ct-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1px solid #f1f2f6;
+  }
+
+  .ct-type-badge,
+  .ct-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    line-height: 1.2;
+  }
+
+  .ct-type-badge {
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: var(--ct-blue-soft);
+    color: var(--ct-blue-dark);
+    font-size: .72rem;
+    font-weight: 900;
+    overflow-wrap: anywhere;
+  }
+
+  .ct-date {
+    flex-shrink: 0;
+    color: var(--ct-muted);
+    font-size: .72rem;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .ct-loading,
+  .ct-empty {
+    display: grid;
+    place-items: center;
+    gap: 10px;
+    min-height: 180px;
+    padding: 44px 20px;
+    color: var(--ct-muted);
+    font-size: .88rem;
     text-align: center;
   }
-  .ct-stat-icon { font-size: 0.9rem; margin-bottom: 2px; }
-  .ct-stat-val {
-    font-size: 0.9rem; font-weight: 700; color: #1a2035;
-  }
-  .ct-stat-label { font-size: 0.68rem; color: #5e6a85; margin-top: 1px; }
 
-  /* FOOTER ROW */
-  .ct-card-footer {
-    display: flex; justify-content: space-between; align-items: center;
-    border-top: 1px solid #f0f4f8; padding-top: 12px;
+  .ct-loading-icon,
+  .ct-empty-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
+    background: var(--ct-teal-soft);
+    color: var(--ct-teal-dark);
   }
-  .ct-type-badge {
-    font-size: 0.72rem; font-weight: 600;
-    background: #eff5ff; color: #1A6EFF;
-    padding: 3px 9px; border-radius: 999px;
-  }
-  .ct-date { font-size: 0.72rem; color: #5e6a85; }
 
-  /* PREDICTIONS */
-  .db-predictions-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 12px; }
-  .db-pred-card {
-    background: #fff; border-radius: 12px; border: 1px solid #e4e9f0;
-    padding: 16px; transition: transform .2s, box-shadow .2s;
+  .ct-loading-icon svg {
+    animation: ctSpin .9s linear infinite;
   }
-  .db-pred-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.07); }
-  .db-pred-id { font-family:  sans-serif; font-weight: 700; font-size: 0.95rem; color: #1a2035; margin-bottom: 2px; }
-  .db-pred-meta { font-size: 0.75rem; color: #5e6a85; margin-bottom: 10px; }
-  .db-pred-row { display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 4px; }
-  .db-pred-row-label { color: #5e6a85; }
-  .db-pred-row-val { font-weight: 500; color: #1a2035; }
-  .db-pred-confidence { margin-top: 10px; }
-  .db-pred-conf-bar { height: 4px; background: #e4e9f0; border-radius: 99px; margin-top: 4px; }
-  .db-pred-conf-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #1A6EFF, #00D68F); }
-  .db-pred-btn {
-    width: 100%; margin-top: 12px; padding: 8px; border-radius: 8px;
-    border: 1px solid #1A6EFF; color: #1A6EFF; background: transparent;
-    font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all .2s;
-  }
-  .db-pred-btn:hover { background: #1A6EFF; color: #fff; }
-  .db-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
-  .db-badge-green { background: #e6faf3; color: #00A870; }
-  .db-badge-blue  { background: #eff5ff; color: #1A6EFF; }
 
-  @media (max-width: 700px) {
-    .ct-root { padding: 16px; }
-    .ct-grid { grid-template-columns: 1fr; }
+  @keyframes ctSpin {
+    to { transform: rotate(360deg); }
+  }
+
+  @media(max-width: 860px) {
+    .ct-root {
+      padding: 16px;
+    }
+  }
+
+  @media(max-width: 700px) {
+    .ct-page-header {
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .ct-page-header h1 {
+      font-size: 1.45rem;
+    }
+
+    .ct-page-header p {
+      font-size: .82rem;
+    }
+
+    .ct-toolbar {
+      align-items: stretch;
+      flex-direction: column;
+      padding: 10px;
+      border-radius: 16px;
+    }
+
+    .ct-toolbar-left {
+      width: 100%;
+    }
+
+    .ct-sort-wrap,
+    .ct-btn {
+      width: 100%;
+    }
+
+    .ct-count {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .ct-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .ct-card {
+      padding: 15px;
+      border-radius: 16px;
+    }
+
+    .ct-card-head {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .ct-card-sub {
+      margin-left: 0;
+    }
+
+    .ct-card-footer {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .ct-date {
+      white-space: normal;
+    }
   }
 `;
 
- function Containers() {
+function Containers() {
   const [bins, setBins] = useState([]);
   const [sortType, setSortType] = useState("fullness_desc");
   const [loading, setLoading] = useState(true);
@@ -197,18 +526,16 @@ const css = `
   }, []);
 
   useSocket({
-  'telemetry:update': ({ binId, fullness, timestamp }) => {
-    setBins(prev => {
-      const exists = prev.find(b => b._id === binId);
-      if (exists) return prev.map(b => b._id === binId ? { ...b, fullness, timestamp } : b);
-      fetchBins();
-      return prev;
-    });
-  },
-});
- 
+    "telemetry:update": ({ binId, fullness, timestamp }) => {
+      setBins(prev => {
+        const exists = prev.find(b => b._id === binId);
+        if (exists) return prev.map(b => b._id === binId ? { ...b, fullness, timestamp } : b);
+        fetchBins();
+        return prev;
+      });
+    },
+  });
 
-  // 2. Логика сортировки
   const sortedBins = useMemo(() => {
     let result = [...bins];
     if (sortType === "fullness_desc") result.sort((a, b) => b.fullness - a.fullness);
@@ -217,89 +544,137 @@ const css = `
     return result;
   }, [bins, sortType]);
 
-  // Хелперы для стилей
   const getStatusInfo = (val) => {
-    if (val >= 80) return { class: "ct-status-critical", label: "⚠ Critical", color: "#EF4444" };
-    if (val >= 60) return { class: "ct-status-warning", label: "! Warning", color: "#F59E0B" };
-    return { class: "ct-status-active", label: "● Active", color: "#1A6EFF" };
+    if (val >= 80) return { class: "ct-status-critical", label: "Critical", color: "#e6535d", icon: AlertTriangle };
+    if (val >= 60) return { class: "ct-status-warning", label: "Warning", color: "#f4a62a", icon: AlertCircle };
+    return { class: "ct-status-active", label: "Active", color: "#149d80", icon: CheckCircle2 };
   };
 
-
-
- return (
+  return (
     <>
       <style>{css}</style>
       <div className="ct-root">
         <div className="ct-page-header">
-          <h1>Bins Monitoring</h1>
-          <p>Real-time status of all medical waste containers</p>
+          <div>
+            <h1>Bins Monitoring</h1>
+            <p>Real-time status of all medical waste containers</p>
+          </div>
+          <span className="ct-header-icon">
+            <Boxes size={22} strokeWidth={2.35} aria-hidden="true" />
+          </span>
         </div>
 
         <div className="ct-toolbar">
           <div className="ct-toolbar-left">
-            <select 
-              className="ct-sort-select" 
-              value={sortType} 
-              onChange={(e) => setSortType(e.target.value)}
-            >
-              <option value="fullness_desc">Sort by Fullness (High)</option>
-              <option value="fullness_asc">Sort by Fullness (Low)</option>
-              <option value="id_asc">Sort by ID</option>
-            </select>
-            <span className="ct-count">Total Bins: {bins.length}</span>
+            <div className="ct-sort-wrap">
+              <select
+                className="ct-sort-select"
+                value={sortType}
+                onChange={(e) => setSortType(e.target.value)}
+              >
+                <option value="fullness_desc">Sort by Fullness (High)</option>
+                <option value="fullness_asc">Sort by Fullness (Low)</option>
+                <option value="id_asc">Sort by ID</option>
+              </select>
+              <ChevronDown className="ct-sort-chevron" size={15} strokeWidth={2.35} aria-hidden="true" />
+            </div>
+            <span className="ct-count">
+              <PackageCheck size={14} strokeWidth={2.35} aria-hidden="true" />
+              Total Bins: {bins.length}
+            </span>
           </div>
-          <button className="ct-btn ct-btn-primary" onClick={fetchBins}>
+          <button className="ct-btn ct-btn-primary" onClick={fetchBins} type="button">
+            <RefreshCw size={15} strokeWidth={2.35} aria-hidden="true" />
             Update Data
           </button>
         </div>
 
         {loading ? (
-          <p>Loading containers...</p>
+          <div className="ct-loading">
+            <span className="ct-loading-icon">
+              <Loader2 size={22} strokeWidth={2.35} aria-hidden="true" />
+            </span>
+            Loading containers...
+          </div>
+        ) : sortedBins.length === 0 ? (
+          <div className="ct-empty">
+            <span className="ct-empty-icon">
+              <Boxes size={22} strokeWidth={2.35} aria-hidden="true" />
+            </span>
+            No containers found
+          </div>
         ) : (
           <div className="ct-grid">
             {sortedBins.map((bin) => {
-              const status = getStatusInfo(bin.fullness);
+              const fullness = Number(bin.fullness ?? 0);
+              const status = getStatusInfo(fullness);
+              const StatusIcon = status.icon;
+
               return (
                 <div key={bin._id} className="ct-card">
                   <div className="ct-card-accent" style={{ background: status.color }} />
-                  
+
                   <div className="ct-card-head">
-                    <span className="ct-card-id">{bin._id}</span>
+                    <div className="ct-card-id-wrap">
+                      <span className="ct-card-icon">
+                        <PackageCheck size={17} strokeWidth={2.35} aria-hidden="true" />
+                      </span>
+                      <span className="ct-card-id">{bin._id}</span>
+                    </div>
                     <span className={`ct-status-badge ${status.class}`}>
+                      <StatusIcon size={13} strokeWidth={2.45} aria-hidden="true" />
                       {status.label}
                     </span>
                   </div>
-                  <div className="ct-card-sub">{bin.wasteType || "—"} • ID: {bin._id}</div>
+
+                  <div className="ct-card-sub">{bin.wasteType || "-"} / ID: {bin._id}</div>
 
                   <div className="ct-fullness-header">
-                    <span>Current Fullness</span>
-                    <span className="ct-fullness-val">{Number(bin.fullness ?? 0).toFixed(1)}%</span>
+                    <span className="ct-fullness-label">
+                      <Gauge size={14} strokeWidth={2.35} aria-hidden="true" />
+                      Current Fullness
+                    </span>
+                    <span className="ct-fullness-val">{fullness.toFixed(1)}%</span>
                   </div>
                   <div className="ct-bar-track">
                     <div
                       className="ct-bar-fill"
-                      style={{ 
-                        width: `${Number(bin.fullness ?? 0)}%`, 
-                        background: status.color 
+                      style={{
+                        width: `${fullness}%`,
+                        background: status.color,
                       }}
                     />
                   </div>
 
                   <div className="ct-stats-row">
                     <div className="ct-stat">
-                      <div className="ct-stat-val">{bin.temperature ?? "—"}</div>
-                      <div className="ct-stat-label">Temperature</div>
+                      <span className="ct-stat-icon">
+                        <Thermometer size={15} strokeWidth={2.35} aria-hidden="true" />
+                      </span>
+                      <div>
+                        <div className="ct-stat-val">{bin.temperature ?? "-"}</div>
+                        <div className="ct-stat-label">Temperature</div>
+                      </div>
                     </div>
                     <div className="ct-stat">
-                      <div className="ct-stat-val">{bin.weightKg != null ? `${Number(bin.weightKg).toFixed(1)} kg` : "—"}</div>
-                      <div className="ct-stat-label">Est. Weight</div>
+                      <span className="ct-stat-icon">
+                        <Scale size={15} strokeWidth={2.35} aria-hidden="true" />
+                      </span>
+                      <div>
+                        <div className="ct-stat-val">{bin.weightKg != null ? `${Number(bin.weightKg).toFixed(1)} kg` : "-"}</div>
+                        <div className="ct-stat-label">Est. Weight</div>
+                      </div>
                     </div>
                   </div>
 
                   <div className="ct-card-footer">
-                    <span className="ct-type-badge">{bin.wasteType ? `Type ${bin.wasteType}` : "—"}</span>
+                    <span className="ct-type-badge">
+                      <SlidersHorizontal size={12} strokeWidth={2.35} aria-hidden="true" />
+                      {bin.wasteType ? `Type ${bin.wasteType}` : "-"}
+                    </span>
                     <span className="ct-date">
-                      Last: {bin.timestamp ? new Date(bin.timestamp).toLocaleTimeString() : "—"}
+                      <Clock3 size={12} strokeWidth={2.35} aria-hidden="true" />
+                      Last: {bin.timestamp ? new Date(bin.timestamp).toLocaleTimeString() : "-"}
                     </span>
                   </div>
                 </div>

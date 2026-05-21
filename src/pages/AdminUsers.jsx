@@ -1,105 +1,438 @@
 import React, { useEffect, useState } from "react";
+import {
+  Activity,
+  BadgeCheck,
+  CircleCheck,
+  Mail,
+  RefreshCw,
+  Search,
+  Settings,
+  ShieldCheck,
+  User,
+  UserCog,
+  Users,
+} from "lucide-react";
 import { getUsers, updateUserRole } from "../services/api";
 
-
 const css = `
-  @import url('https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-sans/style.css');
-
-  .au-root { min-height:100vh; background:#f0f4f8; font-family:'Geist',sans-serif; color:#1a2035; padding:32px; }
-  .au-header { margin-bottom:28px; }
-  .au-header h1 { font-size:1.9rem; font-weight:800; letter-spacing:-.03em; margin-bottom:4px; }
-  .au-header p  { color:#5e6a85; font-size:.9rem; }
-
-  .au-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
-  .au-stat  { background:#fff; border-radius:12px; border:1px solid #e4e9f0; padding:16px 20px;
-    position:relative; overflow:hidden; }
-  .au-stat::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
-  .au-stat.admin::before    { background:#8B5CF6; }
-  .au-stat.personnel::before{ background:#1A6EFF; }
-  .au-stat.driver::before   { background:#00D68F; }
-  .au-stat.utilizer::before { background:#F59E0B; }
-  .au-stat-label { font-size:.72rem; font-weight:600; color:#5e6a85; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; }
-  .au-stat-val   { font-size:1.8rem; font-weight:800; color:#1a2035; }
-
-  .au-toolbar { display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
-  .au-search { flex:1; min-width:200px; padding:9px 14px; border:1.5px solid #e4e9f0; border-radius:8px;
-    font-family:inherit; font-size:.88rem; outline:none; background:#fff; transition:border-color .2s; }
-  .au-search:focus { border-color:#1A6EFF; }
-  .au-filter-btn { padding:8px 14px; border-radius:8px; border:1px solid #e4e9f0;
-    background:#fff; font-family:inherit; font-size:.82rem; font-weight:500; color:#5e6a85;
-    cursor:pointer; transition:all .2s; white-space:nowrap; }
-  .au-filter-btn:hover { background:#f0f4f8; }
-  .au-filter-btn.active { background:#1A6EFF; color:#fff; border-color:#1A6EFF; }
-
-  .au-card { background:#fff; border-radius:14px; border:1px solid #e4e9f0;
-    box-shadow:0 2px 8px rgba(0,0,0,.04); overflow:hidden; }
-  .au-card-head { display:flex; justify-content:space-between; align-items:center;
-    padding:16px 20px; border-bottom:1px solid #f0f4f8; }
-  .au-card-title { font-size:.95rem; font-weight:700; }
-  .au-card-count { font-size:.78rem; color:#5e6a85; }
-
-  .au-table { width:100%; border-collapse:collapse; font-size:.85rem; }
-  .au-table th { padding:12px 16px; text-align:left; font-size:.7rem; font-weight:700;
-    color:#5e6a85; text-transform:uppercase; letter-spacing:.06em; background:#f8fafc; }
-  .au-table td { padding:14px 16px; border-top:1px solid #f8f9fb; vertical-align:middle; }
-  .au-table tr:hover td { background:#fafbfc; }
-
-  .au-avatar { width:32px; height:32px; border-radius:50%;
-    background:linear-gradient(135deg,#1A6EFF,#00D68F);
-    display:flex; align-items:center; justify-content:center;
-    font-size:.8rem; font-weight:700; color:#fff; flex-shrink:0; }
-  .au-user-cell { display:flex; align-items:center; gap:10px; }
-  .au-user-name  { font-weight:600; font-size:.88rem; }
-  .au-user-email { font-size:.72rem; color:#5e6a85; }
-
-  .au-role-badge { display:inline-flex; align-items:center; gap:4px;
-    font-size:.72rem; font-weight:700; padding:3px 10px; border-radius:999px; }
-  .au-role-admin     { background:#f3f0ff; color:#7C3AED; }
-  .au-role-personnel { background:#eff5ff; color:#1A6EFF; }
-  .au-role-driver    { background:#e6faf3; color:#00A870; }
-  .au-role-utilizer  { background:#fff8ec; color:#D97706; }
-
-  .au-role-select { padding:6px 10px; border:1.5px solid #e4e9f0; border-radius:8px;
-    font-family:inherit; font-size:.82rem; color:#1a2035; background:#f8fafc;
-    outline:none; cursor:pointer; transition:border-color .2s; }
-  .au-role-select:focus { border-color:#1A6EFF; }
-
-  .au-save-btn { padding:6px 14px; border-radius:8px; border:none;
-    background:#1A6EFF; color:#fff; font-family:inherit; font-size:.8rem;
-    font-weight:600; cursor:pointer; transition:all .2s; }
-  .au-save-btn:hover { background:#0F4ECC; }
-  .au-save-btn:disabled { opacity:.5; cursor:not-allowed; }
-  .au-save-btn.saved { background:#00D68F; color:#0B1A14; }
-
-  .au-empty { padding:60px; text-align:center; color:#a0aec0; font-size:.9rem; }
-  .au-loading { padding:40px; text-align:center; color:#5e6a85; }
-
-  .au-toast { position:fixed; bottom:24px; right:24px; background:#1a2035; color:#fff;
-    border-radius:10px; padding:12px 20px; font-size:.85rem; font-weight:500;
-    box-shadow:0 8px 24px rgba(0,0,0,.2); animation:toastIn .3s ease; z-index:9999; }
-  @keyframes toastIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-
-  .au-avail-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:5px; }
-  .au-avail-yes { background:#00D68F; }
-  .au-avail-no  { background:#e4e9f0; }
-
-  @media(max-width:800px) {
-    .au-stats { grid-template-columns:repeat(2,1fr); }
-    .au-root  { padding:16px; }
+  .au-root {
+    --au-bg: #f4f3f8;
+    --au-card: #ffffff;
+    --au-ink: #101318;
+    --au-muted: #7d8490;
+    --au-line: #e7e7ef;
+    --au-teal: #149d80;
+    --au-teal-dark: #0d8069;
+    --au-teal-soft: #e7f6f1;
+    --au-blue: #4f96ce;
+    --au-blue-soft: #e8f2fb;
+    --au-warning: #f4a62a;
+    --au-purple: #8b7bd8;
+    --au-shadow: 0 8px 24px rgba(24, 33, 49, .06);
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding: 28px 32px;
+    background: var(--au-bg);
+    color: var(--au-ink);
   }
 
-  @media (max-width: 700px) {
+  .au-root,
+  .au-root * {
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  .au-header {
+    margin-bottom: 22px;
+  }
+
+  .au-header h1 {
+    margin: 0 0 4px;
+    color: var(--au-ink);
+    font-size: clamp(1.35rem, 5vw, 1.8rem);
+    font-weight: 900;
+    line-height: 1.12;
+  }
+
+  .au-header p {
+    margin: 0;
+    color: var(--au-muted);
+    font-size: .88rem;
+    line-height: 1.45;
+  }
+
+  .au-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .au-stat,
+  .au-card {
+    border: 1px solid rgba(231, 231, 239, .92);
+    background: rgba(255,255,255,.94);
+    box-shadow: var(--au-shadow);
+  }
+
+  .au-stat {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    border-radius: 18px;
+  }
+
+  .au-stat::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+  }
+
+  .au-stat.admin::before { background: var(--au-purple); }
+  .au-stat.personnel::before { background: var(--au-blue); }
+  .au-stat.driver::before { background: var(--au-teal); }
+  .au-stat.utilizer::before { background: var(--au-warning); }
+
+  .au-stat-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 7px;
+    color: var(--au-muted);
+    font-size: .72rem;
+    font-weight: 900;
+    letter-spacing: .04em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  .au-stat-val {
+    color: var(--au-ink);
+    font-size: clamp(1.35rem, 5vw, 1.7rem);
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .au-stat-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border-radius: 12px;
+    background: #f3f7f6;
+    color: var(--au-teal);
+  }
+
+  .au-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .au-search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 220px;
+  }
+
+  .au-search-icon {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    color: #a2a8b1;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+
+  .au-search {
+    width: 100%;
+    min-height: 40px;
+    padding: 9px 14px 9px 40px;
+    border: 1px solid rgba(231,231,239,.92);
+    border-radius: 14px;
+    background: #fff;
+    color: var(--au-ink);
+    outline: none;
+    font: inherit;
+    font-size: .86rem;
+    transition: border-color .2s ease, box-shadow .2s ease;
+  }
+
+  .au-search:focus {
+    border-color: rgba(20,157,128,.72);
+    box-shadow: 0 0 0 4px rgba(20,157,128,.12);
+  }
+
+  .au-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 38px;
+    padding: 0 12px;
+    border: 1px solid rgba(231,231,239,.92);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--au-muted);
+    cursor: pointer;
+    font: inherit;
+    font-size: .8rem;
+    font-weight: 900;
+    white-space: nowrap;
+    transition: all .2s;
+  }
+
+  .au-filter-btn:hover {
+    background: #f8f8fb;
+    transform: translateY(-1px);
+  }
+
+  .au-filter-btn.active {
+    border-color: rgba(20,157,128,.18);
+    background: var(--au-teal-soft);
+    color: var(--au-teal-dark);
+  }
+
+  .au-card {
+    overflow: hidden;
+    border-radius: 18px;
+  }
+
+  .au-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(231,231,239,.8);
+  }
+
+  .au-card-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--au-ink);
+    font-size: .96rem;
+    font-weight: 900;
+    line-height: 1.25;
+  }
+
+  .au-card-count {
+    color: var(--au-muted);
+    font-size: .78rem;
+    font-weight: 800;
+  }
+
+  .au-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .84rem;
+  }
+
+  .au-table th {
+    padding: 12px 16px;
+    background: #f8f8fb;
+    color: var(--au-muted);
+    font-size: .7rem;
+    font-weight: 900;
+    letter-spacing: .06em;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  .au-table td {
+    padding: 13px 16px;
+    border-top: 1px solid #f2f3f7;
+    vertical-align: middle;
+  }
+
+  .au-table tr:hover td {
+    background: #fbfcfd;
+  }
+
+  .au-user-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .au-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    border-radius: 50%;
+    background: var(--au-teal);
+    color: #fff;
+    font-size: .82rem;
+    font-weight: 900;
+  }
+
+  .au-user-name {
+    color: var(--au-ink);
+    font-size: .88rem;
+    font-weight: 900;
+    line-height: 1.25;
+  }
+
+  .au-user-email {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 2px;
+    color: var(--au-muted);
+    font-size: .72rem;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .au-role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 900;
+    line-height: 1.2;
+  }
+
+  .au-role-admin { background: #f2efff; color: #6d58c8; }
+  .au-role-personnel { background: var(--au-blue-soft); color: #286b9d; }
+  .au-role-driver { background: var(--au-teal-soft); color: var(--au-teal-dark); }
+  .au-role-utilizer { background: #fff8e8; color: #8a5a0a; }
+
+  .au-role-select {
+    min-height: 36px;
+    padding: 0 10px;
+    border: 1px solid rgba(231,231,239,.92);
+    border-radius: 12px;
+    background: #f8f8fb;
+    color: var(--au-ink);
+    cursor: pointer;
+    outline: none;
+    font: inherit;
+    font-size: .82rem;
+    font-weight: 800;
+    transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+  }
+
+  .au-role-select:focus {
+    border-color: rgba(20,157,128,.72);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(20,157,128,.12);
+  }
+
+  .au-save-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--au-teal);
+    color: #fff;
+    cursor: pointer;
+    font: inherit;
+    font-size: .8rem;
+    font-weight: 900;
+    transition: all .2s;
+  }
+
+  .au-save-btn:hover {
+    background: var(--au-teal-dark);
+    transform: translateY(-1px);
+  }
+
+  .au-save-btn:disabled {
+    cursor: not-allowed;
+    opacity: .7;
+    transform: none;
+  }
+
+  .au-save-btn.saved {
+    background: var(--au-teal-soft);
+    color: var(--au-teal-dark);
+  }
+
+  .au-empty,
+  .au-loading {
+    padding: 44px 20px;
+    color: var(--au-muted);
+    font-size: .88rem;
+    text-align: center;
+  }
+
+  .au-toast {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 9999;
+    padding: 12px 18px;
+    border-radius: 14px;
+    background: #101318;
+    color: #fff;
+    box-shadow: 0 12px 30px rgba(0,0,0,.22);
+    font-size: .85rem;
+    font-weight: 700;
+    animation: toastIn .3s ease;
+  }
+
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .au-avail {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--au-ink);
+    font-size: .82rem;
+    font-weight: 800;
+  }
+
+  .au-avail-dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .au-avail-yes { background: var(--au-teal); }
+  .au-avail-no { background: #d8dbe3; }
+
+  @media(max-width: 800px) {
+    .au-root { padding: 16px; }
+    .au-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media(max-width: 700px) {
     .au-header h1 { font-size: 1.45rem; }
-    .au-header p  { font-size: .82rem; }
+    .au-header p { font-size: .82rem; }
 
     .au-stats {
-      grid-template-columns: 1fr 1fr;
       gap: 10px;
       margin-bottom: 14px;
     }
 
     .au-stat {
       padding: 12px;
+      border-radius: 16px;
     }
 
     .au-stat-val {
@@ -110,14 +443,15 @@ const css = `
       gap: 8px;
     }
 
-    .au-search {
+    .au-search-wrap {
       min-width: 100%;
       width: 100%;
     }
 
     .au-filter-btn {
+      min-height: 36px;
+      padding: 0 10px;
       font-size: .76rem;
-      padding: 7px 10px;
     }
 
     .au-card-head {
@@ -141,15 +475,15 @@ const css = `
 
     .au-table tr {
       margin: 10px;
-      border: 1px solid #e8edf5;
-      border-radius: 10px;
-      background: #fff;
       overflow: hidden;
+      border: 1px solid var(--au-line);
+      border-radius: 14px;
+      background: #fff;
     }
 
     .au-table td {
-      border-top: 1px solid #f3f6fb;
       padding: 10px 12px;
+      border-top: 1px solid #f3f4f8;
     }
 
     .au-table td:first-child {
@@ -159,12 +493,12 @@ const css = `
     .au-table td[data-label]::before {
       content: attr(data-label);
       display: block;
-      font-size: .68rem;
-      font-weight: 700;
-      color: #6b7791;
-      text-transform: uppercase;
-      letter-spacing: .05em;
       margin-bottom: 4px;
+      color: #6b7280;
+      font-size: .68rem;
+      font-weight: 900;
+      letter-spacing: .05em;
+      text-transform: uppercase;
     }
 
     .au-user-cell {
@@ -181,29 +515,34 @@ const css = `
       left: 12px;
       right: 12px;
       bottom: 94px;
-      font-size: .8rem;
       padding: 10px 12px;
+      font-size: .8rem;
     }
   }
 `;
 
-const ROLES = ['admin', 'personnel', 'driver', 'utilizer'];
+const ROLES = ["admin", "personnel", "driver", "utilizer"];
 
-const ROLE_ICONS = {
-  admin:     '🛡️',
-  personnel: '👤',
-  driver:    '🚛',
-  utilizer:  '♻️',
+const ROLE_META = {
+  admin: { icon: ShieldCheck, label: "Admin" },
+  personnel: { icon: User, label: "Personnel" },
+  driver: { icon: UserCog, label: "Driver" },
+  utilizer: { icon: Activity, label: "Utilizer" },
 };
 
+function RoleIcon({ role, size = 14 }) {
+  const Icon = ROLE_META[role]?.icon || User;
+  return <Icon size={size} strokeWidth={2.35} aria-hidden="true" />;
+}
+
 export default function AdminUsers() {
-  const [users,       setUsers]       = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [search,      setSearch]      = useState("");
-  const [roleFilter,  setRoleFilter]  = useState("all");
-  const [pendingRole, setPendingRole] = useState({}); // {userId: newRole}
-  const [saving,      setSaving]      = useState({}); // {userId: bool}
-  const [toast,       setToast]       = useState("");
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [pendingRole, setPendingRole] = useState({});
+  const [saving, setSaving] = useState({});
+  const [toast, setToast] = useState("");
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
 
@@ -212,7 +551,7 @@ export default function AdminUsers() {
       const res = await getUsers();
       setUsers(res.data);
     } catch (err) {
-      showToast("❌ Failed to load users");
+      showToast("Failed to load users");
     } finally {
       setLoading(false);
     }
@@ -233,15 +572,14 @@ export default function AdminUsers() {
       await updateUserRole(userId, newRole);
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
       setPendingRole(p => { const copy = { ...p }; delete copy[userId]; return copy; });
-      showToast(`✅ Role updated to ${newRole}`);
+      showToast(`Role updated to ${newRole}`);
     } catch (err) {
-      showToast("❌ " + (err.response?.data?.error || "Failed to update role"));
+      showToast(err.response?.data?.error || "Failed to update role");
     } finally {
       setSaving(s => ({ ...s, [userId]: false }));
     }
   };
 
-  // ── Filter ─────────────────────────────────────────────────
   const filtered = users.filter(u => {
     const matchSearch = !search ||
       u.email?.toLowerCase().includes(search.toLowerCase()) ||
@@ -250,7 +588,6 @@ export default function AdminUsers() {
     return matchSearch && matchRole;
   });
 
-  // ── Role counts ────────────────────────────────────────────
   const counts = ROLES.reduce((acc, r) => {
     acc[r] = users.filter(u => u.role === r).length;
     return acc;
@@ -260,52 +597,69 @@ export default function AdminUsers() {
     <>
       <style>{css}</style>
       <div className="au-root">
-
-        {/* HEADER */}
         <div className="au-header">
           <h1>Users & Roles</h1>
           <p>Manage user accounts and assign roles across the system</p>
         </div>
 
-        {/* STATS */}
         <div className="au-stats">
           {ROLES.map(r => (
             <div key={r} className={`au-stat ${r}`}>
-              <div className="au-stat-label">{ROLE_ICONS[r]} {r}</div>
-              <div className="au-stat-val">{counts[r] ?? 0}</div>
+              <div>
+                <div className="au-stat-label">
+                  <RoleIcon role={r} />
+                  {r}
+                </div>
+                <div className="au-stat-val">{counts[r] ?? 0}</div>
+              </div>
+              <span className="au-stat-icon">
+                <RoleIcon role={r} size={20} />
+              </span>
             </div>
           ))}
         </div>
 
-        {/* TOOLBAR */}
         <div className="au-toolbar">
-          <input
-            className="au-search"
-            placeholder="🔍  Search by name or email…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+          <div className="au-search-wrap">
+            <Search className="au-search-icon" size={17} strokeWidth={2.35} aria-hidden="true" />
+            <input
+              className="au-search"
+              placeholder="Search by name or email..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
           <button className={`au-filter-btn ${roleFilter === "all" ? "active" : ""}`}
-            onClick={() => setRoleFilter("all")}>All</button>
+            onClick={() => setRoleFilter("all")} type="button">
+            <Users size={15} strokeWidth={2.35} aria-hidden="true" />
+            All
+          </button>
           {ROLES.map(r => (
             <button key={r}
               className={`au-filter-btn ${roleFilter === r ? "active" : ""}`}
-              onClick={() => setRoleFilter(r)}>
-              {ROLE_ICONS[r]} {r.charAt(0).toUpperCase() + r.slice(1)}
+              onClick={() => setRoleFilter(r)}
+              type="button">
+              <RoleIcon role={r} />
+              {ROLE_META[r].label}
             </button>
           ))}
-          <button className="au-filter-btn" onClick={fetchUsers}>🔄 Refresh</button>
+          <button className="au-filter-btn" onClick={fetchUsers} type="button">
+            <RefreshCw size={15} strokeWidth={2.35} aria-hidden="true" />
+            Refresh
+          </button>
         </div>
 
-        {/* TABLE */}
         <div className="au-card">
           <div className="au-card-head">
-            <span className="au-card-title">All Users</span>
+            <span className="au-card-title">
+              <Users size={18} strokeWidth={2.35} aria-hidden="true" />
+              All Users
+            </span>
             <span className="au-card-count">Showing {filtered.length} of {users.length}</span>
           </div>
 
           {loading ? (
-            <div className="au-loading">⏳ Loading users…</div>
+            <div className="au-loading">Loading users...</div>
           ) : filtered.length === 0 ? (
             <div className="au-empty">No users found</div>
           ) : (
@@ -323,43 +677,44 @@ export default function AdminUsers() {
               <tbody>
                 {filtered.map(u => {
                   const currentRole = u.role;
-                  const selected    = pendingRole[u.id] ?? currentRole;
-                  const changed     = pendingRole[u.id] && pendingRole[u.id] !== currentRole;
+                  const selected = pendingRole[u.id] ?? currentRole;
+                  const changed = pendingRole[u.id] && pendingRole[u.id] !== currentRole;
 
                   return (
                     <tr key={u.id}>
-                      {/* User */}
                       <td data-label="User">
                         <div className="au-user-cell">
                           <div className="au-avatar">
                             {(u.fullName || u.email || "?").charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <div className="au-user-name">{u.fullName || "—"}</div>
-                            <div className="au-user-email">{u.email}</div>
+                            <div className="au-user-name">{u.fullName || "-"}</div>
+                            <div className="au-user-email">
+                              <Mail size={12} strokeWidth={2.3} aria-hidden="true" />
+                              {u.email}
+                            </div>
                           </div>
                         </div>
                       </td>
 
-                      {/* Current role */}
                       <td data-label="Current Role">
                         <span className={`au-role-badge au-role-${currentRole}`}>
-                          {ROLE_ICONS[currentRole]} {currentRole}
+                          <RoleIcon role={currentRole} />
+                          {currentRole}
                         </span>
                       </td>
 
-                      {/* Available */}
                       <td data-label="Available">
-                        <span className={`au-avail-dot ${u.isAvailable ? "au-avail-yes" : "au-avail-no"}`} />
-                        {u.isAvailable ? "Yes" : "No"}
+                        <span className="au-avail">
+                          <span className={`au-avail-dot ${u.isAvailable ? "au-avail-yes" : "au-avail-no"}`} />
+                          {u.isAvailable ? "Yes" : "No"}
+                        </span>
                       </td>
 
-                      {/* Joined */}
-                      <td data-label="Joined" style={{ color:"#5e6a85", fontSize:".78rem" }}>
-                        {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}
+                      <td data-label="Joined" style={{ color: "#7d8490", fontSize: ".78rem" }}>
+                        {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "-"}
                       </td>
 
-                      {/* Role select */}
                       <td data-label="Change Role">
                         <select
                           className="au-role-select"
@@ -368,20 +723,29 @@ export default function AdminUsers() {
                         >
                           {ROLES.map(r => (
                             <option key={r} value={r}>
-                              {ROLE_ICONS[r]} {r}
+                              {r}
                             </option>
                           ))}
                         </select>
                       </td>
 
-                      {/* Save */}
                       <td data-label="Save">
                         <button
                           className={`au-save-btn ${!changed ? "saved" : ""}`}
                           disabled={!changed || saving[u.id]}
                           onClick={() => handleSave(u.id)}
+                          type="button"
                         >
-                          {saving[u.id] ? "Saving…" : changed ? "Save" : "✓"}
+                          {saving[u.id] ? (
+                            "Saving..."
+                          ) : changed ? (
+                            <>
+                              <Settings size={14} strokeWidth={2.35} aria-hidden="true" />
+                              Save
+                            </>
+                          ) : (
+                            <CircleCheck size={16} strokeWidth={2.5} aria-hidden="true" />
+                          )}
                         </button>
                       </td>
                     </tr>
@@ -391,7 +755,6 @@ export default function AdminUsers() {
             </table>
           )}
         </div>
-
       </div>
 
       {toast && <div className="au-toast">{toast}</div>}

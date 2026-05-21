@@ -1,120 +1,496 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  Bell,
+  CircleCheck,
+  Clock,
+  PackageCheck,
+  RefreshCw,
+  Route,
+  Truck,
+  User,
+} from "lucide-react";
 import api from "../services/api";
 import { useSocket } from "../hooks/useSocket";
 
 const css = `
-  
-  .dd-root { min-height:100vh; background:#f0f4f8; font-family:'Geist',sans-serif; color:#1a2035; padding:32px; }
-  .dd-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px; flex-wrap:wrap; gap:14px; }
-  .dd-header h1 { font-size:1.9rem; font-weight:800; letter-spacing:-.03em; margin-bottom:4px; }
-  .dd-header p  { color:#5e6a85; font-size:.9rem; }
+  .dd-root {
+    --dd-bg: #f4f3f8;
+    --dd-card: #ffffff;
+    --dd-ink: #101318;
+    --dd-muted: #7d8490;
+    --dd-line: #e7e7ef;
+    --dd-teal: #149d80;
+    --dd-teal-dark: #0d8069;
+    --dd-teal-soft: #e7f6f1;
+    --dd-blue: #4f96ce;
+    --dd-blue-soft: #e8f2fb;
+    --dd-warning: #f4a62a;
+    --dd-danger: #e05d63;
+    --dd-shadow: 0 8px 24px rgba(24, 33, 49, .06);
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding: 28px 32px;
+    background: var(--dd-bg);
+    color: var(--dd-ink);
+  }
 
-  .dd-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:24px; }
-  .dd-stat  { background:#fff; border-radius:12px; border:1px solid #e4e9f0; padding:18px 20px;
-    position:relative; overflow:hidden; }
-  .dd-stat::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
-  .dd-stat.blue::before   { background:#1A6EFF; }
-  .dd-stat.green::before  { background:#00D68F; }
-  .dd-stat.orange::before { background:#F59E0B; }
-  .dd-stat-label { font-size:.72rem; font-weight:600; color:#5e6a85; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; }
-  .dd-stat-val   { font-size:1.8rem; font-weight:800; color:#1a2035; }
+  .dd-root,
+  .dd-root * {
+    box-sizing: border-box;
+    min-width: 0;
+  }
 
-  .dd-tabs { display:flex; gap:4px; background:#e8edf5; border-radius:8px; padding:3px; margin-bottom:20px; width:fit-content; }
-  .dd-tab  { padding:7px 18px; border:none; border-radius:6px; background:transparent;
-    font-family:inherit; font-size:.85rem; font-weight:500; color:#5e6a85; cursor:pointer; transition:all .2s; }
-  .dd-tab.active { background:#fff; color:#1a2035; box-shadow:0 1px 4px rgba(0,0,0,.1); }
+  .dd-profile-card,
+  .dd-stat,
+  .dd-card {
+    border: 1px solid rgba(231, 231, 239, .92);
+    background: rgba(255,255,255,.94);
+    box-shadow: var(--dd-shadow);
+  }
 
-  .dd-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; }
+  .dd-profile-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding: 18px;
+    border-radius: 18px;
+  }
 
-  .dd-card { background:#fff; border-radius:14px; border:1px solid #e4e9f0;
-    padding:20px; position:relative; overflow:hidden;
-    transition:transform .2s,box-shadow .2s; }
-  .dd-card:hover { transform:translateY(-3px); box-shadow:0 8px 24px rgba(0,0,0,.08); }
-  .dd-card-accent { position:absolute; top:0; left:0; right:0; height:3px; }
+  .dd-profile-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    border-radius: 50%;
+    background: var(--dd-teal);
+    color: #fff;
+    font-size: 1.2rem;
+    font-weight: 900;
+  }
 
-  .dd-card-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
-  .dd-task-id  { font-size:1rem; font-weight:700; }
-  .dd-priority { font-size:.7rem; font-weight:700; padding:3px 9px; border-radius:999px; }
-  .dd-priority-high     { background:#fff0f1; color:#E53E3E; }
-  .dd-priority-medium   { background:#fff8ec; color:#D97706; }
-  .dd-priority-low      { background:#e6faf3; color:#00A870; }
-  .dd-priority-critical { background:#4B0082; color:#fff; }
+  .dd-profile-name {
+    color: var(--dd-ink);
+    font-size: 1rem;
+    font-weight: 900;
+    line-height: 1.25;
+  }
 
-  .dd-status-badge { font-size:.72rem; font-weight:600; padding:3px 9px; border-radius:999px; display:inline-flex; align-items:center; gap:4px; }
-  .dd-status-assigned     { background:#eff5ff; color:#1A6EFF; }
-  .dd-status-in_transit   { background:#fff8ec; color:#D97706; }
-  .dd-status-completed    { background:#e6faf3; color:#00A870; }
-  .dd-status-cancelled    { background:#fff0f1; color:#E53E3E; }
+  .dd-profile-role {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 3px;
+    color: var(--dd-muted);
+    font-size: .78rem;
+  }
 
-  .dd-info-row { display:flex; justify-content:space-between; font-size:.8rem; margin-bottom:5px; }
-  .dd-info-label { color:#5e6a85; }
-  .dd-info-val   { font-weight:500; color:#1a2035; }
+  .dd-avail-toggle {
+    margin-left: auto;
+  }
 
-  .dd-divider { height:1px; background:#f0f4f8; margin:12px 0; }
+  .dd-availability-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 38px;
+    padding: 0 14px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    cursor: pointer;
+    font: inherit;
+    font-size: .82rem;
+    font-weight: 900;
+    transition: background .2s ease, color .2s ease, border-color .2s ease, transform .2s ease;
+  }
 
-  .dd-btn { width:100%; padding:10px; border-radius:8px; border:none;
-    font-family:inherit; font-size:.85rem; font-weight:600; cursor:pointer; transition:all .2s; margin-top:4px; }
-  .dd-btn-primary { background:#1A6EFF; color:#fff; }
-  .dd-btn-primary:hover { background:#0F4ECC; }
-  .dd-btn-green { background:#00D68F; color:#0B1A14; }
-  .dd-btn-green:hover { background:#00A870; }
-  .dd-btn-ghost { background:#f0f4f8; color:#5e6a85; }
-  .dd-btn-ghost:hover { background:#e4e9f0; }
-  .dd-btn:disabled { opacity:.5; cursor:not-allowed; }
+  .dd-availability-btn:hover {
+    transform: translateY(-1px);
+  }
 
-  .dd-empty { text-align:center; padding:60px 20px; color:#a0aec0; }
-  .dd-empty-icon { font-size:3rem; margin-bottom:12px; }
-  .dd-empty h3 { font-size:1rem; font-weight:700; color:#5e6a85; margin-bottom:6px; }
-  .dd-empty p  { font-size:.85rem; line-height:1.6; }
+  .dd-availability-btn.available {
+    border-color: rgba(20,157,128,.16);
+    background: var(--dd-teal-soft);
+    color: var(--dd-teal-dark);
+  }
 
-  .dd-toast { position:fixed; bottom:24px; right:24px; background:#1a2035; color:#fff;
-    border-radius:10px; padding:12px 20px; font-size:.85rem; font-weight:500;
-    box-shadow:0 8px 24px rgba(0,0,0,.2); animation:toastIn .3s ease; z-index:9999; }
-  @keyframes toastIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+  .dd-availability-btn.unavailable {
+    border-color: var(--dd-line);
+    background: #f8f8fb;
+    color: var(--dd-muted);
+  }
 
-  .dd-refresh-btn { padding:8px 16px; border-radius:8px; border:1px solid #e4e9f0;
-    background:#fff; font-family:inherit; font-size:.85rem; font-weight:500;
-    color:#1a2035; cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; gap:6px; }
-  .dd-refresh-btn:hover { background:#f0f4f8; }
+  .dd-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
 
-  .dd-profile-card { background:#fff; border-radius:14px; border:1px solid #e4e9f0; padding:20px; margin-bottom:20px;
-    display:flex; align-items:center; gap:16px; }
-  .dd-profile-avatar { width:48px; height:48px; border-radius:50%;
-    background:linear-gradient(135deg,#1A6EFF,#00D68F);
-    display:flex; align-items:center; justify-content:center;
-    font-size:1.2rem; font-weight:800; color:#fff; flex-shrink:0; }
-  .dd-profile-name { font-size:1rem; font-weight:700; }
-  .dd-profile-role { font-size:.78rem; color:#5e6a85; }
-  .dd-avail-toggle { margin-left:auto; }
+  .dd-header h1 {
+    margin: 0 0 4px;
+    color: var(--dd-ink);
+    font-size: clamp(1.35rem, 5vw, 1.8rem);
+    font-weight: 900;
+    line-height: 1.12;
+  }
 
-  @media(max-width:700px) {
-    .dd-root { padding:16px; }
-    .dd-stats { grid-template-columns:1fr 1fr; }
-    .dd-grid  { grid-template-columns:1fr; }
+  .dd-header p {
+    margin: 0;
+    color: var(--dd-muted);
+    font-size: .88rem;
+    line-height: 1.45;
+  }
+
+  .dd-refresh-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 0 14px;
+    border: 1px solid rgba(231,231,239,.92);
+    border-radius: 14px;
+    background: #fff;
+    color: var(--dd-teal-dark);
+    box-shadow: 0 8px 22px rgba(24,33,49,.05);
+    cursor: pointer;
+    font: inherit;
+    font-size: .82rem;
+    font-weight: 900;
+    transition: all .2s;
+  }
+
+  .dd-refresh-btn:hover {
+    background: #f8f8fb;
+    transform: translateY(-1px);
+  }
+
+  .dd-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .dd-stat {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    border-radius: 18px;
+  }
+
+  .dd-stat::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+  }
+
+  .dd-stat.blue::before { background: var(--dd-blue); }
+  .dd-stat.green::before { background: var(--dd-teal); }
+  .dd-stat.orange::before { background: var(--dd-warning); }
+
+  .dd-stat-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 7px;
+    color: var(--dd-muted);
+    font-size: .72rem;
+    font-weight: 900;
+    letter-spacing: .04em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  .dd-stat-val {
+    color: var(--dd-ink);
+    font-size: clamp(1.35rem, 5vw, 1.7rem);
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .dd-stat-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border-radius: 12px;
+    background: #f3f7f6;
+    color: var(--dd-teal);
+  }
+
+  .dd-tabs {
+    display: flex;
+    gap: 4px;
+    width: fit-content;
+    margin-bottom: 20px;
+    padding: 4px;
+    border: 1px solid rgba(231,231,239,.9);
+    border-radius: 999px;
+    background: rgba(255,255,255,.74);
+  }
+
+  .dd-tab {
+    min-height: 32px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--dd-muted);
+    cursor: pointer;
+    font: inherit;
+    font-size: .82rem;
+    font-weight: 900;
+    transition: all .2s;
+  }
+
+  .dd-tab.active {
+    background: #fff;
+    color: var(--dd-teal-dark);
+    box-shadow: 0 8px 18px rgba(24,33,49,.08);
+  }
+
+  .dd-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  .dd-card {
+    position: relative;
+    overflow: hidden;
+    padding: 18px;
+    border-radius: 18px;
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+  }
+
+  .dd-card:hover {
+    transform: translateY(-1px);
+    border-color: rgba(214,218,228,.95);
+    box-shadow: 0 12px 28px rgba(24,33,49,.08);
+  }
+
+  .dd-card-accent {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+  }
+
+  .dd-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .dd-task-id {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--dd-ink);
+    font-size: .98rem;
+    font-weight: 900;
+    line-height: 1.25;
+  }
+
+  .dd-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 900;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .dd-status-assigned { background: var(--dd-blue-soft); color: #286b9d; }
+  .dd-status-in_transit { background: #fff8e8; color: #8a5a0a; }
+  .dd-status-completed { background: var(--dd-teal-soft); color: var(--dd-teal-dark); }
+  .dd-status-cancelled { background: #fff1f2; color: #b42335; }
+
+  .dd-info-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+    font-size: .8rem;
+    line-height: 1.35;
+  }
+
+  .dd-info-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex: 0 0 auto;
+    color: var(--dd-muted);
+  }
+
+  .dd-info-val {
+    color: var(--dd-ink);
+    font-weight: 800;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  .dd-divider {
+    height: 1px;
+    margin: 14px 0;
+    background: var(--dd-line);
+  }
+
+  .dd-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 42px;
+    margin-top: 4px;
+    padding: 10px;
+    border: 0;
+    border-radius: 12px;
+    cursor: pointer;
+    font: inherit;
+    font-size: .85rem;
+    font-weight: 900;
+    transition: all .2s;
+  }
+
+  .dd-btn-primary {
+    background: var(--dd-teal);
+    color: #fff;
+    box-shadow: 0 12px 24px rgba(20,157,128,.18);
+  }
+
+  .dd-btn-primary:hover {
+    background: var(--dd-teal-dark);
+    transform: translateY(-1px);
+  }
+
+  .dd-btn-green { background: var(--dd-teal); color: #fff; }
+  .dd-btn-green:hover { background: var(--dd-teal-dark); }
+  .dd-btn-ghost { border: 1px solid var(--dd-line); background: #fff; color: var(--dd-muted); }
+  .dd-btn-ghost:hover { background: #f8f8fb; }
+  .dd-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+  .dd-empty {
+    padding: 48px 20px;
+    color: var(--dd-muted);
+    text-align: center;
+  }
+
+  .dd-empty-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    margin-bottom: 12px;
+    border-radius: 50%;
+    background: var(--dd-teal-soft);
+    color: var(--dd-teal);
+  }
+
+  .dd-empty h3 {
+    margin: 0 0 6px;
+    color: var(--dd-ink);
+    font-size: 1rem;
+    font-weight: 900;
+  }
+
+  .dd-empty p {
+    margin: 0;
+    font-size: .85rem;
+    line-height: 1.6;
+  }
+
+  .dd-toast {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 9999;
+    padding: 12px 18px;
+    border-radius: 14px;
+    background: #101318;
+    color: #fff;
+    box-shadow: 0 12px 30px rgba(0,0,0,.22);
+    font-size: .85rem;
+    font-weight: 700;
+    animation: toastIn .3s ease;
+  }
+
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media(max-width: 700px) {
+    .dd-root { padding: 16px; }
+    .dd-stats { grid-template-columns: 1fr 1fr; }
+    .dd-grid { grid-template-columns: 1fr; }
+    .dd-profile-card { align-items: flex-start; flex-wrap: wrap; }
+    .dd-avail-toggle { width: 100%; margin-left: 0; }
+    .dd-availability-btn,
+    .dd-refresh-btn { width: 100%; }
+    .dd-tabs { width: 100%; }
+    .dd-tab { flex: 1; }
+    .dd-toast { left: 16px; right: 16px; bottom: 92px; }
   }
 `;
 
 const STATUS_NEXT = {
-  assigned:   { label: "🚛 Pick Up — Start Transit", next: "in_transit", btnClass: "dd-btn-primary" },
+  assigned: { label: "Pick Up - Start Transit", next: "in_transit", btnClass: "dd-btn-primary" },
 };
 
 const STATUS_COLOR = {
-  assigned:     "#1A6EFF",
-  in_transit:   "#F59E0B",
-  completed:    "#00D68F",
-  cancelled:    "#EF4444",
+  assigned: "#4f96ce",
+  in_transit: "#f4a62a",
+  completed: "#149d80",
+  cancelled: "#e05d63",
 };
 
+function StatusIcon({ status }) {
+  if (status === "completed") return <CircleCheck size={14} strokeWidth={2.5} aria-hidden="true" />;
+  if (status === "in_transit") return <Truck size={14} strokeWidth={2.5} aria-hidden="true" />;
+  if (status === "cancelled") return <Bell size={14} strokeWidth={2.5} aria-hidden="true" />;
+  return <Clock size={14} strokeWidth={2.5} aria-hidden="true" />;
+}
+
+function statusLabel(status) {
+  if (status === "assigned") return "Assigned";
+  if (status === "in_transit") return "In Transit";
+  if (status === "completed") return "Completed";
+  if (status === "cancelled") return "Cancelled";
+  return status;
+}
+
 export default function DriverDashboard() {
-  const navigate  = useNavigate();
-  const name      = sessionStorage.getItem("mw_name") || "Driver";
-  const [tab,     setTab]     = useState("active");
-  const [tasks,   setTasks]   = useState([]);
+  const navigate = useNavigate();
+  const name = sessionStorage.getItem("mw_name") || "Driver";
+  const [tab, setTab] = useState("active");
+  const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [saving,  setSaving]  = useState({});
-  const [avail,   setAvail]   = useState(true);
-  const [toast,   setToast]   = useState("");
+  const [saving, setSaving] = useState({});
+  const [avail, setAvail] = useState(true);
+  const [toast, setToast] = useState("");
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
 
@@ -124,28 +500,25 @@ export default function DriverDashboard() {
       const res = await api.get("/api/drivers/tasks");
       setTasks(res.data);
     } catch (err) {
-      showToast("❌ Failed to load tasks");
+      showToast("Failed to load tasks");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-  if (sessionStorage.getItem("mw_logged_in") !== "true") navigate("/");
-  fetchTasks();
-  const id = setInterval(fetchTasks, 15000);
-  return () => clearInterval(id);
-}, []);
-
+    if (sessionStorage.getItem("mw_logged_in") !== "true") navigate("/");
+    fetchTasks();
+    const id = setInterval(fetchTasks, 15000);
+    return () => clearInterval(id);
+  }, []);
 
   useSocket({
-  // Admin assigned a new task → instantly appear in list
-  'task:assigned': (task) => {
-    setTasks(prev => [task, ...prev]);
-    showToast("🚛 New task assigned!");
-  },
-});
-
+    "task:assigned": (task) => {
+      setTasks(prev => [task, ...prev]);
+      showToast("New task assigned!");
+    },
+  });
 
   const handleStatusUpdate = async (taskId, nextStatus) => {
     setSaving(s => ({ ...s, [taskId]: true }));
@@ -157,10 +530,10 @@ export default function DriverDashboard() {
           : t
       ));
       showToast(nextStatus === "in_transit"
-        ? "🚛 Status updated — you are now in transit!"
-        : "✅ Task completed! Well done.");
+        ? "Status updated - you are now in transit!"
+        : "Task completed! Well done.");
     } catch (err) {
-      showToast("❌ " + (err.response?.data?.error || "Failed to update"));
+      showToast(err.response?.data?.error || "Failed to update");
     } finally {
       setSaving(s => ({ ...s, [taskId]: false }));
     }
@@ -171,11 +544,12 @@ export default function DriverDashboard() {
       await api.patch("/api/drivers/availability", { isAvailable: !avail });
       setAvail(a => !a);
       showToast(`Status: ${!avail ? "Available" : "Unavailable"}`);
-    } catch { setAvail(a => !a); }
+    } catch {
+      setAvail(a => !a);
+    }
   };
 
-  // Filter by tab
-  const active    = tasks.filter(t => ["assigned", "in_transit"].includes(t.status));
+  const active = tasks.filter(t => ["assigned", "in_transit"].includes(t.status));
   const completed = tasks.filter(t => t.status === "completed");
   const displayed = tab === "active" ? active : completed;
 
@@ -183,69 +557,90 @@ export default function DriverDashboard() {
     <>
       <style>{css}</style>
       <div className="dd-root">
-
-        {/* Profile + availability */}
         <div className="dd-profile-card">
           <div className="dd-profile-avatar">{name.charAt(0).toUpperCase()}</div>
           <div>
             <div className="dd-profile-name">{name}</div>
-            <div className="dd-profile-role">🚛 Driver</div>
+            <div className="dd-profile-role">
+              <Truck size={15} strokeWidth={2.4} aria-hidden="true" />
+              Driver
+            </div>
           </div>
           <div className="dd-avail-toggle">
             <button
+              className={`dd-availability-btn ${avail ? "available" : "unavailable"}`}
               onClick={handleAvailToggle}
-              style={{
-                padding:"8px 16px", borderRadius:999, border:"none", cursor:"pointer",
-                background: avail ? "#e6faf3" : "#f0f4f8",
-                color:      avail ? "#00A870" : "#5e6a85",
-                fontFamily:"inherit", fontWeight:600, fontSize:".82rem",
-              }}>
-              {avail ? "🟢 Available" : "⚫ Unavailable"}
+              type="button"
+            >
+              <Activity size={15} strokeWidth={2.4} aria-hidden="true" />
+              {avail ? "Available" : "Unavailable"}
             </button>
           </div>
         </div>
 
-        {/* Header */}
         <div className="dd-header">
           <div>
             <h1>My Tasks</h1>
             <p>Medical waste collection assignments</p>
           </div>
-          <button className="dd-refresh-btn" onClick={fetchTasks}>🔄 Refresh</button>
+          <button className="dd-refresh-btn" onClick={fetchTasks} type="button">
+            <RefreshCw size={16} strokeWidth={2.4} aria-hidden="true" />
+            Refresh
+          </button>
         </div>
 
-        {/* Stats */}
         <div className="dd-stats">
           <div className="dd-stat blue">
-            <div className="dd-stat-label">📋 Assigned</div>
-            <div className="dd-stat-val">{tasks.filter(t => t.status === "assigned").length}</div>
+            <div>
+              <div className="dd-stat-label">
+                <PackageCheck size={14} strokeWidth={2.4} aria-hidden="true" />
+                Assigned
+              </div>
+              <div className="dd-stat-val">{tasks.filter(t => t.status === "assigned").length}</div>
+            </div>
+            <span className="dd-stat-icon"><PackageCheck size={20} strokeWidth={2.35} aria-hidden="true" /></span>
           </div>
           <div className="dd-stat orange">
-            <div className="dd-stat-label">🚛 In Transit</div>
-            <div className="dd-stat-val">{tasks.filter(t => t.status === "in_transit").length}</div>
+            <div>
+              <div className="dd-stat-label">
+                <Truck size={14} strokeWidth={2.4} aria-hidden="true" />
+                In Transit
+              </div>
+              <div className="dd-stat-val">{tasks.filter(t => t.status === "in_transit").length}</div>
+            </div>
+            <span className="dd-stat-icon"><Truck size={20} strokeWidth={2.35} aria-hidden="true" /></span>
           </div>
           <div className="dd-stat green">
-            <div className="dd-stat-label">✅ Completed</div>
-            <div className="dd-stat-val">{completed.length}</div>
+            <div>
+              <div className="dd-stat-label">
+                <CircleCheck size={14} strokeWidth={2.4} aria-hidden="true" />
+                Completed
+              </div>
+              <div className="dd-stat-val">{completed.length}</div>
+            </div>
+            <span className="dd-stat-icon"><CircleCheck size={20} strokeWidth={2.35} aria-hidden="true" /></span>
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="dd-tabs">
-          <button className={`dd-tab ${tab === "active" ? "active" : ""}`} onClick={() => setTab("active")}>
+          <button className={`dd-tab ${tab === "active" ? "active" : ""}`} onClick={() => setTab("active")} type="button">
             Active ({active.length})
           </button>
-          <button className={`dd-tab ${tab === "history" ? "active" : ""}`} onClick={() => setTab("history")}>
+          <button className={`dd-tab ${tab === "history" ? "active" : ""}`} onClick={() => setTab("history")} type="button">
             History ({completed.length})
           </button>
         </div>
 
-        {/* Task cards */}
         {loading ? (
-          <div className="dd-empty"><div className="dd-empty-icon">⏳</div><p>Loading tasks…</p></div>
+          <div className="dd-empty">
+            <div className="dd-empty-icon"><Clock size={24} strokeWidth={2.4} aria-hidden="true" /></div>
+            <p>Loading tasks...</p>
+          </div>
         ) : displayed.length === 0 ? (
           <div className="dd-empty">
-            <div className="dd-empty-icon">{tab === "active" ? "🎉" : "📋"}</div>
+            <div className="dd-empty-icon">
+              {tab === "active" ? <Bell size={24} strokeWidth={2.4} aria-hidden="true" /> : <Route size={24} strokeWidth={2.4} aria-hidden="true" />}
+            </div>
             <h3>{tab === "active" ? "No active tasks" : "No completed tasks yet"}</h3>
             <p>{tab === "active"
               ? "You have no assigned tasks right now. Stay available to receive new assignments."
@@ -254,7 +649,7 @@ export default function DriverDashboard() {
         ) : (
           <div className="dd-grid">
             {displayed.map(task => {
-              const id       = task.id || task._id;
+              const id = task.id || task._id;
               const nextStep = STATUS_NEXT[task.status];
 
               return (
@@ -262,33 +657,42 @@ export default function DriverDashboard() {
                   <div className="dd-card-accent" style={{ background: STATUS_COLOR[task.status] }} />
 
                   <div className="dd-card-top">
-                    <span className="dd-task-id">Task #{String(id).slice(-6)}</span>
+                    <span className="dd-task-id">
+                      <Route size={18} strokeWidth={2.4} aria-hidden="true" />
+                      Task #{String(id).slice(-6)}
+                    </span>
                     <span className={`dd-status-badge dd-status-${task.status}`}>
-                      {task.status === "assigned"   && "● Assigned"}
-                      {task.status === "in_transit" && "🚛 In Transit"}
-                      {task.status === "completed"  && "✓ Completed"}
-                      {task.status === "cancelled"  && "✕ Cancelled"}
+                      <StatusIcon status={task.status} />
+                      {statusLabel(task.status)}
                     </span>
                   </div>
 
                   <div className="dd-info-row">
-                    <span className="dd-info-label">📦 Container</span>
+                    <span className="dd-info-label">
+                      <PackageCheck size={15} strokeWidth={2.3} aria-hidden="true" />
+                      Container
+                    </span>
                     <span className="dd-info-val">{task.containerId}</span>
                   </div>
                   <div className="dd-info-row">
-                    <span className="dd-info-label">📅 Assigned</span>
+                    <span className="dd-info-label">
+                      <Clock size={15} strokeWidth={2.3} aria-hidden="true" />
+                      Assigned
+                    </span>
                     <span className="dd-info-val">
-                      {task.assignedAt ? new Date(task.assignedAt).toLocaleString() : "—"}
+                      {task.assignedAt ? new Date(task.assignedAt).toLocaleString() : "-"}
                     </span>
                   </div>
                   {task.completedAt && (
                     <div className="dd-info-row">
-                      <span className="dd-info-label">✅ Completed</span>
+                      <span className="dd-info-label">
+                        <CircleCheck size={15} strokeWidth={2.3} aria-hidden="true" />
+                        Completed
+                      </span>
                       <span className="dd-info-val">{new Date(task.completedAt).toLocaleString()}</span>
                     </div>
                   )}
 
-                  {/* Action button */}
                   {nextStep && (
                     <>
                       <div className="dd-divider" />
@@ -296,8 +700,10 @@ export default function DriverDashboard() {
                         className={`dd-btn ${nextStep.btnClass}`}
                         disabled={saving[id]}
                         onClick={() => handleStatusUpdate(id, nextStep.next)}
+                        type="button"
                       >
-                        {saving[id] ? "Updating…" : nextStep.label}
+                        <Truck size={17} strokeWidth={2.4} aria-hidden="true" />
+                        {saving[id] ? "Updating..." : nextStep.label}
                       </button>
                     </>
                   )}
@@ -306,7 +712,6 @@ export default function DriverDashboard() {
             })}
           </div>
         )}
-
       </div>
 
       {toast && <div className="dd-toast">{toast}</div>}

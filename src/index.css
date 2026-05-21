@@ -1097,3 +1097,399 @@ body {
     min-width: 0;
     width: 100%;
 }
+
+/* ─── Unified MedWaste / Dumamed Design System ───────────────────────────── */
+:root {
+    --mw-bg: #f4f3f8;
+    --mw-bg-2: #f7f8fb;
+    --mw-card: #ffffff;
+    --mw-card-soft: #fbfcfd;
+    --mw-ink: #101318;
+    --mw-muted: #7d8490;
+    --mw-muted-2: #a0a7b2;
+    --mw-line: #e7e7ef;
+    --mw-line-2: #dfe4ec;
+    --mw-teal: #149d80;
+    --mw-teal-dark: #0d8069;
+    --mw-teal-soft: #e7f6f1;
+    --mw-blue: #4f96ce;
+    --mw-blue-dark: #286b9d;
+    --mw-blue-soft: #e8f2fb;
+    --mw-amber: #f4a62a;
+    --mw-amber-soft: #fff8e8;
+    --mw-red: #e6535d;
+    --mw-red-soft: #fff0f1;
+    --mw-purple: #8b7bd8;
+    --mw-purple-soft: #f2efff;
+    --mw-radius-sm: 12px;
+    --mw-radius-md: 16px;
+    --mw-radius-lg: 22px;
+    --mw-radius-xl: 28px;
+    --mw-shadow-xs: 0 1px 8px rgba(24, 33, 49, .05);
+    --mw-shadow-sm: 0 8px 24px rgba(24, 33, 49, .06);
+    --mw-shadow-md: 0 14px 34px rgba(24, 33, 49, .08);
+    --mw-focus: 0 0 0 4px rgba(20, 157, 128, .12);
+}
+
+.app-layout {
+    background: var(--mw-bg) !important;
+}
+
+.mobile-shell {
+    background: var(--mw-card);
+}
+
+.mobile-shell .app-main,
+.app-main {
+    background: var(--mw-bg);
+}
+
+:is(
+  .db-root, .ct-root, .mp-root, .al-root, .rp-root, .rh-root, .pf-root,
+  .dd-root, .au-root, .ad-root, .ap-root, .disp-root, .ut-root, .ur-root, .dr-root
+) {
+    --db-bg: var(--mw-bg);
+    --db-card: var(--mw-card);
+    --db-ink: var(--mw-ink);
+    --db-muted: var(--mw-muted);
+    --db-line: var(--mw-line);
+    --db-teal: var(--mw-teal);
+    --db-teal-dark: var(--mw-teal-dark);
+    --db-teal-soft: var(--mw-teal-soft);
+    --db-blue: var(--mw-blue);
+    --db-blue-soft: var(--mw-blue-soft);
+    --db-warning: var(--mw-amber);
+    --db-danger: var(--mw-red);
+    --db-shadow: var(--mw-shadow-sm);
+    --ct-bg: var(--mw-bg);
+    --ct-card: var(--mw-card);
+    --ct-ink: var(--mw-ink);
+    --ct-muted: var(--mw-muted);
+    --ct-line: var(--mw-line);
+    --ct-teal: var(--mw-teal);
+    --ct-teal-dark: var(--mw-teal-dark);
+    --ct-teal-soft: var(--mw-teal-soft);
+    --ct-blue: var(--mw-blue);
+    --ct-blue-soft: var(--mw-blue-soft);
+    --ct-warning: var(--mw-amber);
+    --ct-danger: var(--mw-red);
+    --ct-shadow: var(--mw-shadow-sm);
+    --mp-bg: var(--mw-bg);
+    --mp-card: var(--mw-card);
+    --mp-ink: var(--mw-ink);
+    --mp-muted: var(--mw-muted);
+    --mp-line: var(--mw-line);
+    --mp-teal: var(--mw-teal);
+    --mp-teal-dark: var(--mw-teal-dark);
+    --mp-teal-soft: var(--mw-teal-soft);
+    --mp-blue: var(--mw-blue);
+    --mp-blue-soft: var(--mw-blue-soft);
+    --mp-shadow: var(--mw-shadow-sm);
+    --al-bg: var(--mw-bg);
+    --al-card: var(--mw-card);
+    --al-ink: var(--mw-ink);
+    --al-muted: var(--mw-muted);
+    --al-line: var(--mw-line);
+    --al-teal: var(--mw-teal);
+    --al-teal-dark: var(--mw-teal-dark);
+    --al-teal-soft: var(--mw-teal-soft);
+    --al-blue: var(--mw-blue);
+    --al-blue-soft: var(--mw-blue-soft);
+    --al-red: var(--mw-red);
+    --al-red-soft: var(--mw-red-soft);
+    --al-amber: var(--mw-amber);
+    --al-amber-soft: var(--mw-amber-soft);
+    --al-shadow: var(--mw-shadow-sm);
+    --rp-bg: var(--mw-bg);
+    --rp-card: var(--mw-card);
+    --rp-ink: var(--mw-ink);
+    --rp-muted: var(--mw-muted);
+    --rp-line: var(--mw-line);
+    --rp-teal: var(--mw-teal);
+    --rp-teal-dark: var(--mw-teal-dark);
+    --rp-teal-soft: var(--mw-teal-soft);
+    --rp-blue: var(--mw-blue);
+    --rp-blue-soft: var(--mw-blue-soft);
+    --rp-red: var(--mw-red);
+    --rp-red-soft: var(--mw-red-soft);
+    --rp-amber: var(--mw-amber);
+    --rp-amber-soft: var(--mw-amber-soft);
+    --rp-purple: var(--mw-purple);
+    --rp-purple-soft: var(--mw-purple-soft);
+    --rp-shadow: var(--mw-shadow-sm);
+    --rh-bg: var(--mw-bg);
+    --rh-card: var(--mw-card);
+    --rh-ink: var(--mw-ink);
+    --rh-muted: var(--mw-muted);
+    --rh-line: var(--mw-line);
+    --rh-teal: var(--mw-teal);
+    --rh-teal-dark: var(--mw-teal-dark);
+    --rh-teal-soft: var(--mw-teal-soft);
+    --rh-blue: var(--mw-blue);
+    --rh-blue-soft: var(--mw-blue-soft);
+    --rh-shadow: var(--mw-shadow-sm);
+    --pf-bg: var(--mw-bg);
+    --pf-card: var(--mw-card);
+    --pf-ink: var(--mw-ink);
+    --pf-muted: var(--mw-muted);
+    --pf-line: var(--mw-line);
+    --pf-teal: var(--mw-teal);
+    --pf-teal-dark: var(--mw-teal-dark);
+    --pf-teal-soft: var(--mw-teal-soft);
+    --pf-blue: var(--mw-blue);
+    --pf-blue-soft: var(--mw-blue-soft);
+    --pf-red: var(--mw-red);
+    --pf-red-soft: var(--mw-red-soft);
+    --pf-shadow: var(--mw-shadow-sm);
+    --dd-bg: var(--mw-bg);
+    --dd-card: var(--mw-card);
+    --dd-ink: var(--mw-ink);
+    --dd-muted: var(--mw-muted);
+    --dd-line: var(--mw-line);
+    --dd-teal: var(--mw-teal);
+    --dd-teal-dark: var(--mw-teal-dark);
+    --dd-teal-soft: var(--mw-teal-soft);
+    --dd-blue: var(--mw-blue);
+    --dd-blue-soft: var(--mw-blue-soft);
+    --dd-shadow: var(--mw-shadow-sm);
+    --au-bg: var(--mw-bg);
+    --au-card: var(--mw-card);
+    --au-ink: var(--mw-ink);
+    --au-muted: var(--mw-muted);
+    --au-line: var(--mw-line);
+    --au-teal: var(--mw-teal);
+    --au-teal-dark: var(--mw-teal-dark);
+    --au-teal-soft: var(--mw-teal-soft);
+    --au-blue: var(--mw-blue);
+    --au-blue-soft: var(--mw-blue-soft);
+    --au-warning: var(--mw-amber);
+    --au-shadow: var(--mw-shadow-sm);
+    --ad-bg: var(--mw-bg);
+    --ad-card: var(--mw-card);
+    --ad-ink: var(--mw-ink);
+    --ad-muted: var(--mw-muted);
+    --ad-line: var(--mw-line);
+    --ad-teal: var(--mw-teal);
+    --ad-teal-dark: var(--mw-teal-dark);
+    --ad-teal-soft: var(--mw-teal-soft);
+    --ad-blue: var(--mw-blue);
+    --ad-blue-soft: var(--mw-blue-soft);
+    --ad-red: var(--mw-red);
+    --ad-red-soft: var(--mw-red-soft);
+    --ad-amber: var(--mw-amber);
+    --ad-amber-soft: var(--mw-amber-soft);
+    --ad-shadow: var(--mw-shadow-sm);
+    --ap-bg: var(--mw-bg);
+    --ap-card: var(--mw-card);
+    --ap-ink: var(--mw-ink);
+    --ap-muted: var(--mw-muted);
+    --ap-line: var(--mw-line);
+    --ap-teal: var(--mw-teal);
+    --ap-teal-dark: var(--mw-teal-dark);
+    --ap-teal-soft: var(--mw-teal-soft);
+    --ap-blue: var(--mw-blue);
+    --ap-blue-soft: var(--mw-blue-soft);
+    --ap-red: var(--mw-red);
+    --ap-red-soft: var(--mw-red-soft);
+    --ap-amber: var(--mw-amber);
+    --ap-amber-soft: var(--mw-amber-soft);
+    --ap-shadow: var(--mw-shadow-sm);
+    --disp-bg: var(--mw-bg);
+    --disp-card: var(--mw-card);
+    --disp-ink: var(--mw-ink);
+    --disp-muted: var(--mw-muted);
+    --disp-line: var(--mw-line);
+    --disp-teal: var(--mw-teal);
+    --disp-teal-dark: var(--mw-teal-dark);
+    --disp-teal-soft: var(--mw-teal-soft);
+    --disp-blue: var(--mw-blue);
+    --disp-blue-soft: var(--mw-blue-soft);
+    --disp-shadow: var(--mw-shadow-sm);
+    background-color: var(--mw-bg) !important;
+    color: var(--mw-ink) !important;
+    font-family: var(--font-body) !important;
+}
+
+:is(
+  .db-root, .ct-root, .mp-root, .al-root, .rp-root, .rh-root, .pf-root,
+  .dd-root, .au-root, .ad-root, .ap-root, .disp-root, .ut-root, .ur-root, .dr-root
+) form {
+    max-width: none !important;
+    margin: 0 !important;
+}
+
+:is(
+  .db-root, .ct-root, .mp-root, .al-root, .rp-root, .rh-root, .pf-root,
+  .dd-root, .au-root, .ad-root, .ap-root, .disp-root, .ut-root, .ur-root, .dr-root
+) :is(h1, h2, h3) {
+    color: var(--mw-ink) !important;
+    letter-spacing: -.02em !important;
+}
+
+:is(
+  .db-root, .ct-root, .mp-root, .al-root, .rp-root, .rh-root, .pf-root,
+  .dd-root, .au-root, .ad-root, .ap-root, .disp-root, .ut-root, .ur-root, .dr-root
+) h1 {
+    font-size: clamp(1.35rem, 4.8vw, 1.85rem) !important;
+    font-weight: 900 !important;
+    line-height: 1.12 !important;
+}
+
+:is(
+  .db-root, .ct-root, .mp-root, .al-root, .rp-root, .rh-root, .pf-root,
+  .dd-root, .au-root, .ad-root, .ap-root, .disp-root, .ut-root, .ur-root, .dr-root
+) :is([class*="-card"], [class*="-panel"], [class*="-stat"], [class*="-toolbar"], [class*="-empty"], [class*="-state-card"], [class*="-submit-card"]) {
+    border-color: rgba(231, 231, 239, .92) !important;
+    box-shadow: var(--mw-shadow-sm) !important;
+}
+
+:is(
+  .db-root, .ct-root, .mp-root, .al-root, .rp-root, .rh-root, .pf-root,
+  .dd-root, .au-root, .ad-root, .ap-root, .disp-root, .ut-root, .ur-root, .dr-root
+) :is([class$="-card"], [class$="-panel"], [class$="-toolbar"], [class$="-empty"], [class$="-state-card"], [class$="-submit-card"]) {
+    border-radius: var(--mw-radius-lg) !important;
+}
+
+:is(
+  .db-root, .ct-root, .mp-root, .al-root, .rp-root, .rh-root, .pf-root,
+  .dd-root, .au-root, .ad-root, .ap-root, .disp-root, .ut-root, .ur-root, .dr-root
+) :is(button, .btn, [class*="-btn"], [class*="-button"]) {
+    border-radius: var(--mw-radius-md) !important;
+    font-family: var(--font-body) !important;
+    font-weight: 850 !important;
+    transition: transform .18s var(--ease-out), box-shadow .18s ease, background .18s ease, border-color .18s ease, color .18s ease !important;
+}
+
+:is(
+  .db-root, .ct-root, .mp-root, .al-root, .rp-root, .rh-root, .pf-root,
+  .dd-root, .au-root, .ad-root, .ap-root, .disp-root, .ut-root, .ur-root, .dr-root
+) :is(button, [class*="-btn"], [class*="-button"]):hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+:is(
+  .db-root, .ct-root, .mp-root, .al-root, .rp-root, .rh-root, .pf-root,
+  .dd-root, .au-root, .ad-root, .ap-root, .disp-root, .ut-root, .ur-root, .dr-root
+) :is(input, select, textarea) {
+    border-color: var(--mw-line-2) !important;
+    border-radius: var(--mw-radius-md) !important;
+    background-color: #f9fafc !important;
+    color: var(--mw-ink) !important;
+    font-family: var(--font-body) !important;
+}
+
+:is(
+  .db-root, .ct-root, .mp-root, .al-root, .rp-root, .rh-root, .pf-root,
+  .dd-root, .au-root, .ad-root, .ap-root, .disp-root, .ut-root, .ur-root, .dr-root
+) :is(input, select, textarea):focus {
+    border-color: var(--mw-teal) !important;
+    background-color: var(--mw-card) !important;
+    box-shadow: var(--mw-focus) !important;
+    outline: none !important;
+}
+
+:is(
+  .db-root, .ct-root, .mp-root, .al-root, .rp-root, .rh-root, .pf-root,
+  .dd-root, .au-root, .ad-root, .ap-root, .disp-root, .ut-root, .ur-root, .dr-root
+) :is([class*="-badge"], [class*="-status"], [class*="-chip"], [class*="-pill"], [class*="-count"]) {
+    border-radius: 999px !important;
+    font-weight: 850 !important;
+}
+
+.login-redesign,
+.register-redesign,
+.home-dumamed {
+    --login-bg: var(--mw-bg);
+    --login-card: var(--mw-card);
+    --login-ink: var(--mw-ink);
+    --login-muted: var(--mw-muted);
+    --login-line: var(--mw-line);
+    --login-teal: var(--mw-teal);
+    --login-teal-dark: var(--mw-teal-dark);
+    --login-teal-soft: var(--mw-teal-soft);
+    --login-blue: var(--mw-blue);
+    --register-bg: var(--mw-bg);
+    --register-card: var(--mw-card);
+    --register-ink: var(--mw-ink);
+    --register-muted: var(--mw-muted);
+    --register-line: var(--mw-line);
+    --register-teal: var(--mw-teal);
+    --register-teal-dark: var(--mw-teal-dark);
+    --register-teal-soft: var(--mw-teal-soft);
+    --register-blue: var(--mw-blue);
+    --dm-bg: var(--mw-bg);
+    --dm-card: var(--mw-card);
+    --dm-card-soft: var(--mw-card-soft);
+    --dm-ink: var(--mw-ink);
+    --dm-muted: var(--mw-muted);
+    --dm-line: var(--mw-line);
+    --dm-teal: var(--mw-teal);
+    --dm-teal-dark: var(--mw-teal-dark);
+    --dm-teal-soft: var(--mw-teal-soft);
+    --dm-blue: var(--mw-blue);
+    --dm-blue-soft: var(--mw-blue-soft);
+    --dm-shadow: var(--mw-shadow-sm);
+}
+
+.login-redesign .auth-container,
+.register-redesign .auth-container,
+.home-dumamed :is(.dm-topbar, .dm-service-card, .dm-action-card, .dm-panel, .dm-contact-card, .dm-workflow-item) {
+    border-color: rgba(231, 231, 239, .92) !important;
+    box-shadow: var(--mw-shadow-sm) !important;
+}
+
+.login-redesign :is(input, button, .btn-full-width),
+.register-redesign :is(input, button, .btn-full-width),
+.home-dumamed :is(input, textarea, button, a[class*="btn"]) {
+    border-radius: var(--mw-radius-md) !important;
+}
+
+.sb-root {
+    background: #111827 !important;
+    font-family: var(--font-body) !important;
+}
+
+.sb-logo-icon,
+.sb-user-avatar {
+    background: var(--mw-teal) !important;
+    box-shadow: 0 10px 24px rgba(20, 157, 128, .18);
+}
+
+.sb-link.active {
+    background: rgba(20, 157, 128, .16) !important;
+}
+
+.sb-link.active::before,
+.sb-badge {
+    background: var(--mw-teal) !important;
+}
+
+.sb-link.active .sb-icon {
+    color: var(--mw-teal) !important;
+}
+
+.mobile-shell .mobile-header-row {
+    background: var(--mw-bg) !important;
+}
+
+.mobile-shell .mobile-header-menu {
+    border-radius: var(--mw-radius-sm) !important;
+    border-color: rgba(231, 231, 239, .92) !important;
+    box-shadow: var(--mw-shadow-sm) !important;
+}
+
+@media (max-width: 767px) {
+    :is(
+      .db-root, .ct-root, .mp-root, .al-root, .rp-root, .rh-root, .pf-root,
+      .dd-root, .au-root, .ad-root, .ap-root, .disp-root, .ut-root, .ur-root, .dr-root
+    ) {
+        padding: 12px !important;
+    }
+
+    :is(
+      .db-root, .ct-root, .mp-root, .al-root, .rp-root, .rh-root, .pf-root,
+      .dd-root, .au-root, .ad-root, .ap-root, .disp-root, .ut-root, .ur-root, .dr-root
+    ) :is([class*="-card"], [class*="-panel"], [class*="-toolbar"], [class*="-empty"], [class*="-submit-card"]) {
+        border-radius: 18px !important;
+    }
+}

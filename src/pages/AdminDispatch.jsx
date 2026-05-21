@@ -1,103 +1,425 @@
 import React, { useState, useEffect } from "react";
+import {
+  AlertTriangle,
+  CalendarClock,
+  CheckCircle2,
+  ChevronDown,
+  ClipboardList,
+  Loader2,
+  PackageOpen,
+  RefreshCw,
+  Route,
+  Send,
+  ShieldAlert,
+  Truck,
+  UserCheck,
+} from "lucide-react";
 import { getAlerts, getApprovedDrivers, getAllTasks, assignTask } from "../services/api";
 import { useSocket } from "../hooks/useSocket";
 
 const css = `
-  
-  .ad-root { min-height:100vh; background:#f0f4f8; font-family:'Geist',sans-serif; color:#1a2035; padding:32px; }
-  .ad-header { margin-bottom:28px; }
-  .ad-header h1 { font-size:1.9rem; font-weight:800; letter-spacing:-0.03em; margin-bottom:4px; }
-  .ad-header p  { color:#5e6a85; font-size:0.9rem; }
-  .ad-card { background:#fff; border-radius:14px; border:1px solid #e4e9f0;
-    box-shadow:0 2px 8px rgba(0,0,0,.04); overflow:hidden; margin-bottom:20px; }
-  .ad-card-title { font-size:0.95rem; font-weight:700; padding:16px 20px; border-bottom:1px solid #f0f4f8; }
-  .ad-table { width:100%; border-collapse:collapse; font-size:0.85rem; }
-  .ad-table th { padding:12px 16px; text-align:left; font-size:0.72rem; font-weight:700;
-    color:#5e6a85; text-transform:uppercase; letter-spacing:.06em; background:#f8fafc; }
-  .ad-table td { padding:14px 16px; border-top:1px solid #f8f9fb; vertical-align:middle; }
-  .ad-table tr:hover td { background:#fafbfc; }
-  .ad-critical { color:#EF4444; font-weight:700; }
-  .ad-select { padding:8px 12px; border:1px solid #e4e9f0; border-radius:8px;
-    font-family:inherit; font-size:0.85rem; outline:none; min-width:200px; }
-  .ad-btn { padding:7px 14px; border-radius:8px; border:none; font-family:inherit;
-    font-size:0.82rem; font-weight:600; cursor:pointer; transition:all .2s; }
-  .ad-btn-blue  { background:#1A6EFF; color:#fff; }
-  .ad-btn-blue:hover  { background:#0F4ECC; }
-  .ad-btn-green { background:#00D68F; color:#0B1A14; }
-  .ad-btn-green:hover { background:#00A870; }
-  .ad-empty { padding:40px; text-align:center; color:#a0aec0; font-size:0.9rem; }
-  .ad-status { font-size:0.72rem; font-weight:600; padding:3px 9px; border-radius:999px; }
-  .ad-status-assigned { background:#eff5ff; color:#1A6EFF; }
-  .ad-status-transit  { background:#fff7e6; color:#D97706; }
-  .ad-status-done     { background:#e6faf3; color:#00A870; }
-  .ad-toast { position:fixed; bottom:24px; right:24px; background:#1a2035; color:#fff;
-    border-radius:10px; padding:12px 20px; font-size:0.85rem; font-weight:500;
-    box-shadow:0 8px 24px rgba(0,0,0,.2); animation:toastIn .3s ease; z-index:9999; }
-  @keyframes toastIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+  .disp-root {
+    --disp-bg: #f4f3f8;
+    --disp-card: #ffffff;
+    --disp-ink: #101318;
+    --disp-muted: #7d8490;
+    --disp-line: #e7e7ef;
+    --disp-teal: #149d80;
+    --disp-teal-dark: #0d8069;
+    --disp-teal-soft: #e7f6f1;
+    --disp-blue: #4f96ce;
+    --disp-blue-dark: #286b9d;
+    --disp-blue-soft: #e8f2fb;
+    --disp-red: #e6535d;
+    --disp-red-soft: #fff0f1;
+    --disp-amber: #f4a62a;
+    --disp-amber-soft: #fff8e8;
+    --disp-shadow: 0 8px 24px rgba(24, 33, 49, .06);
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding: 28px 32px;
+    background: var(--disp-bg);
+    color: var(--disp-ink);
+  }
 
-  @media (max-width: 700px) {
-    .ad-root { padding: 12px; }
-    .ad-header h1 { font-size: 1.45rem; }
-    .ad-header p  { font-size: 0.82rem; }
-    .ad-card-title { padding: 12px 14px; font-size: 0.88rem; }
+  .disp-root,
+  .disp-root * {
+    box-sizing: border-box;
+    min-width: 0;
+  }
 
-    .ad-table,
-    .ad-table tbody,
-    .ad-table tr,
-    .ad-table td {
+  .disp-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .disp-header h1 {
+    margin: 0 0 5px;
+    color: var(--disp-ink);
+    font-size: clamp(1.35rem, 5vw, 1.8rem);
+    font-weight: 900;
+    line-height: 1.12;
+  }
+
+  .disp-header p {
+    margin: 0;
+    max-width: 720px;
+    color: var(--disp-muted);
+    font-size: .88rem;
+    line-height: 1.45;
+  }
+
+  .disp-header-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    border: 1px solid rgba(20,157,128,.18);
+    border-radius: 16px;
+    background: var(--disp-teal-soft);
+    color: var(--disp-teal-dark);
+    box-shadow: var(--disp-shadow);
+  }
+
+  .disp-card {
+    overflow: hidden;
+    margin-bottom: 18px;
+    border: 1px solid rgba(231,231,239,.92);
+    border-radius: 18px;
+    background: rgba(255,255,255,.94);
+    box-shadow: var(--disp-shadow);
+  }
+
+  .disp-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(231,231,239,.8);
+  }
+
+  .disp-card-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--disp-ink);
+    font-size: .96rem;
+    font-weight: 900;
+    line-height: 1.25;
+  }
+
+  .disp-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: var(--disp-amber-soft);
+    color: #8a5a0a;
+    font-size: .74rem;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .disp-count.neutral {
+    background: var(--disp-blue-soft);
+    color: var(--disp-blue-dark);
+  }
+
+  .disp-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .84rem;
+  }
+
+  .disp-table th {
+    padding: 12px 16px;
+    background: #f8f8fb;
+    color: var(--disp-muted);
+    font-size: .7rem;
+    font-weight: 900;
+    letter-spacing: .06em;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  .disp-table td {
+    padding: 14px 16px;
+    border-top: 1px solid #f2f3f7;
+    vertical-align: middle;
+  }
+
+  .disp-table tr:hover td {
+    background: #fbfcfd;
+  }
+
+  .disp-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--disp-ink);
+    font-size: .88rem;
+    font-weight: 900;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .disp-id-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    border-radius: 11px;
+    background: var(--disp-teal-soft);
+    color: var(--disp-teal-dark);
+  }
+
+  .disp-critical {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--disp-red-soft);
+    color: var(--disp-red);
+    font-size: .78rem;
+    font-weight: 900;
+    line-height: 1.2;
+  }
+
+  .disp-select-wrap {
+    position: relative;
+    width: min(100%, 260px);
+  }
+
+  .disp-select {
+    width: 100%;
+    min-height: 38px;
+    padding: 0 36px 0 12px;
+    border: 1px solid rgba(231,231,239,.92);
+    border-radius: 12px;
+    background: #f8f8fb;
+    color: var(--disp-ink);
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    font: inherit;
+    font-size: .82rem;
+    font-weight: 800;
+    transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+  }
+
+  .disp-select:focus {
+    border-color: rgba(20,157,128,.72);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(20,157,128,.12);
+  }
+
+  .disp-select-chevron {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    color: var(--disp-muted);
+    pointer-events: none;
+    transform: translateY(-50%);
+  }
+
+  .disp-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 13px;
+    border: 0;
+    border-radius: 12px;
+    cursor: pointer;
+    font: inherit;
+    font-size: .8rem;
+    font-weight: 900;
+    white-space: nowrap;
+    transition: background .2s ease, color .2s ease, transform .2s ease, box-shadow .2s ease;
+  }
+
+  .disp-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .disp-btn-blue {
+    background: var(--disp-teal);
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(20,157,128,.16);
+  }
+
+  .disp-btn-blue:hover {
+    background: var(--disp-teal-dark);
+  }
+
+  .disp-empty {
+    display: grid;
+    place-items: center;
+    gap: 10px;
+    padding: 44px 20px;
+    color: var(--disp-muted);
+    font-size: .88rem;
+    text-align: center;
+  }
+
+  .disp-empty-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
+    background: var(--disp-teal-soft);
+    color: var(--disp-teal-dark);
+  }
+
+  .disp-loading-icon svg {
+    animation: dispSpin .9s linear infinite;
+  }
+
+  @keyframes dispSpin {
+    to { transform: rotate(360deg); }
+  }
+
+  .disp-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 900;
+    line-height: 1.2;
+  }
+
+  .disp-status-assigned { background: var(--disp-blue-soft); color: var(--disp-blue-dark); }
+  .disp-status-transit { background: var(--disp-amber-soft); color: #8a5a0a; }
+  .disp-status-done { background: var(--disp-teal-soft); color: var(--disp-teal-dark); }
+
+  .disp-muted {
+    color: var(--disp-muted);
+    font-size: .8rem;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .disp-toast {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 9999;
+    padding: 12px 18px;
+    border-radius: 14px;
+    background: #101318;
+    color: #fff;
+    box-shadow: 0 12px 30px rgba(0,0,0,.22);
+    font-size: .85rem;
+    font-weight: 700;
+    animation: toastIn .3s ease;
+  }
+
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media(max-width: 800px) {
+    .disp-root {
+      padding: 16px;
+    }
+  }
+
+  @media(max-width: 700px) {
+    .disp-header {
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .disp-header h1 {
+      font-size: 1.45rem;
+    }
+
+    .disp-header p {
+      font-size: .82rem;
+    }
+
+    .disp-card {
+      margin-bottom: 14px;
+      border-radius: 16px;
+    }
+
+    .disp-card-head {
+      align-items: flex-start;
+      flex-direction: column;
+      padding: 12px 14px;
+    }
+
+    .disp-table,
+    .disp-table tbody,
+    .disp-table tr,
+    .disp-table td {
       display: block;
       width: 100%;
     }
 
-    .ad-table thead {
+    .disp-table thead {
       display: none;
     }
 
-    .ad-table tr {
+    .disp-table tr {
       margin: 10px;
-      border: 1px solid #e8edf5;
-      border-radius: 10px;
-      background: #fff;
       overflow: hidden;
+      border: 1px solid var(--disp-line);
+      border-radius: 14px;
+      background: #fff;
     }
 
-    .ad-table td {
-      border-top: 1px solid #f3f6fb;
+    .disp-table td {
       padding: 10px 12px;
-      font-size: 0.82rem;
+      border-top: 1px solid #f3f4f8;
     }
 
-    .ad-table td:first-child {
+    .disp-table td:first-child {
       border-top: none;
     }
 
-    .ad-table td[data-label]::before {
+    .disp-table td[data-label]::before {
       content: attr(data-label);
       display: block;
-      font-size: 0.68rem;
-      font-weight: 700;
-      color: #6b7791;
-      text-transform: uppercase;
+      margin-bottom: 5px;
+      color: #6b7280;
+      font-size: .68rem;
+      font-weight: 900;
       letter-spacing: .05em;
-      margin-bottom: 4px;
+      text-transform: uppercase;
     }
 
-    .ad-select {
+    .disp-select-wrap {
       width: 100%;
-      min-width: 0;
     }
 
-    .ad-btn {
+    .disp-btn {
       width: 100%;
       min-height: 38px;
     }
 
-    .ad-toast {
+    .disp-toast {
       left: 12px;
       right: 12px;
       bottom: 94px;
-      font-size: 0.8rem;
       padding: 10px 12px;
+      font-size: .8rem;
     }
   }
 `;
@@ -133,54 +455,75 @@ export default function AdminDispatch() {
   useEffect(() => { fetchData(); }, []);
 
   useSocket({
-  // Driver updated task status → refresh task list
-  'task:updated': (task) => {
-    setTasks(prev => prev.map(t =>
-      (t.id === task.id || t._id === task.id) ? task : t
-    ));
-  },
- 
-  // New alert from sensor → add to critical list
-  'alert:new': (alert) => {
-    if (alert.severity === 'critical') {
-      setAlerts(prev => [alert, ...prev]);
-    }
-  },
-});
+    "task:updated": (task) => {
+      setTasks(prev => prev.map(t =>
+        (t.id === task.id || t._id === task.id) ? task : t
+      ));
+    },
+
+    "alert:new": (alert) => {
+      if (alert.severity === "critical") {
+        setAlerts(prev => [alert, ...prev]);
+      }
+    },
+  });
 
   const handleAssign = async (containerId, alertId) => {
     const driverId = selected[alertId];
-    if (!driverId) return showToast("⚠️ Please select a driver first");
+    if (!driverId) return showToast("Please select a driver first");
 
     try {
       await assignTask(driverId, containerId);
-      showToast("✅ Task assigned successfully!");
+      showToast("Task assigned successfully!");
       setAlerts(prev => prev.filter(a => a._id !== alertId));
       fetchData();
     } catch (err) {
-      showToast("❌ " + (err.response?.data?.error || "Error assigning task"));
+      showToast(err.response?.data?.error || "Error assigning task");
     }
   };
 
   return (
     <>
       <style>{css}</style>
-      <div className="ad-root">
-
-        <div className="ad-header">
-          <h1>Dispatch Management</h1>
-          <p>Assign drivers to critical containers and track active tasks</p>
+      <div className="disp-root">
+        <div className="disp-header">
+          <div>
+            <h1>Dispatch Management</h1>
+            <p>Assign drivers to critical containers and track active tasks</p>
+          </div>
+          <span className="disp-header-icon">
+            <Route size={22} strokeWidth={2.35} aria-hidden="true" />
+          </span>
         </div>
 
-        {/* Critical alerts → assign driver */}
-        <div className="ad-card">
-          <div className="ad-card-title">🚨 Critical Containers — Assign Driver</div>
+        <div className="disp-card">
+          <div className="disp-card-head">
+            <span className="disp-card-title">
+              <ShieldAlert size={18} strokeWidth={2.35} aria-hidden="true" />
+              Critical Containers - Assign Driver
+            </span>
+            <span className="disp-count">
+              <AlertTriangle size={14} strokeWidth={2.35} aria-hidden="true" />
+              {alerts.length} critical
+            </span>
+          </div>
+
           {loading ? (
-            <div className="ad-empty">Loading...</div>
+            <div className="disp-empty">
+              <span className="disp-empty-icon disp-loading-icon">
+                <Loader2 size={22} strokeWidth={2.35} aria-hidden="true" />
+              </span>
+              Loading...
+            </div>
           ) : alerts.length === 0 ? (
-            <div className="ad-empty">✅ No critical containers right now</div>
+            <div className="disp-empty">
+              <span className="disp-empty-icon">
+                <CheckCircle2 size={22} strokeWidth={2.45} aria-hidden="true" />
+              </span>
+              No critical containers right now
+            </div>
           ) : (
-            <table className="ad-table">
+            <table className="disp-table">
               <thead>
                 <tr>
                   <th>Container</th>
@@ -192,31 +535,48 @@ export default function AdminDispatch() {
               <tbody>
                 {alerts.map(alert => (
                   <tr key={alert._id}>
-                    <td data-label="Container" style={{ fontWeight: 600 }}>{alert.containerId}</td>
-                    <td data-label="Fullness"><span className="ad-critical">{alert.fullness}%</span></td>
+                    <td data-label="Container">
+                      <span className="disp-primary">
+                        <span className="disp-id-icon">
+                          <PackageOpen size={16} strokeWidth={2.35} aria-hidden="true" />
+                        </span>
+                        {alert.containerId}
+                      </span>
+                    </td>
+                    <td data-label="Fullness">
+                      <span className="disp-critical">
+                        <AlertTriangle size={14} strokeWidth={2.35} aria-hidden="true" />
+                        {alert.fullness}%
+                      </span>
+                    </td>
                     <td data-label="Select Driver">
-                      <select
-                        className="ad-select"
-                        onChange={(e) => setSelected({ ...selected, [alert._id]: e.target.value })}
-                        defaultValue=""
-                      >
-                        <option value="" disabled>— Choose Driver —</option>
-                        {drivers.map((d) => {
-                          const driverId = d.id ?? d._id;
-                          const driverEmail = d.user?.email || d.userId?.email || `driver-${driverId}`;
-                          return (
-                          <option key={driverId} value={driverId}>
-                            {driverEmail} · {d.plateNumber || "No plate"}
-                          </option>
-                        );
-                        })}
-                      </select>
+                      <div className="disp-select-wrap">
+                        <select
+                          className="disp-select"
+                          onChange={(e) => setSelected({ ...selected, [alert._id]: e.target.value })}
+                          defaultValue=""
+                        >
+                          <option value="" disabled>Choose Driver</option>
+                          {drivers.map((d) => {
+                            const driverId = d.id ?? d._id;
+                            const driverEmail = d.user?.email || d.userId?.email || `driver-${driverId}`;
+                            return (
+                              <option key={driverId} value={driverId}>
+                                {driverEmail} - {d.plateNumber || "No plate"}
+                              </option>
+                            );
+                          })}
+                        </select>
+                        <ChevronDown className="disp-select-chevron" size={15} strokeWidth={2.35} aria-hidden="true" />
+                      </div>
                     </td>
                     <td data-label="Action">
                       <button
-                        className="ad-btn ad-btn-blue"
+                        className="disp-btn disp-btn-blue"
                         onClick={() => handleAssign(alert.containerId, alert._id)}
+                        type="button"
                       >
+                        <Send size={15} strokeWidth={2.35} aria-hidden="true" />
                         Assign Task
                       </button>
                     </td>
@@ -227,13 +587,27 @@ export default function AdminDispatch() {
           )}
         </div>
 
-        {/* Active tasks */}
-        <div className="ad-card">
-          <div className="ad-card-title">📋 All Tasks</div>
+        <div className="disp-card">
+          <div className="disp-card-head">
+            <span className="disp-card-title">
+              <ClipboardList size={18} strokeWidth={2.35} aria-hidden="true" />
+              All Tasks
+            </span>
+            <span className="disp-count neutral">
+              <RefreshCw size={14} strokeWidth={2.35} aria-hidden="true" />
+              {tasks.length} tasks
+            </span>
+          </div>
+
           {tasks.length === 0 ? (
-            <div className="ad-empty">No tasks yet</div>
+            <div className="disp-empty">
+              <span className="disp-empty-icon">
+                <ClipboardList size={22} strokeWidth={2.35} aria-hidden="true" />
+              </span>
+              No tasks yet
+            </div>
           ) : (
-            <table className="ad-table">
+            <table className="disp-table">
               <thead>
                 <tr>
                   <th>Container</th>
@@ -245,21 +619,39 @@ export default function AdminDispatch() {
               <tbody>
                 {tasks.map(t => (
                   <tr key={t._id || t.id}>
-                    <td data-label="Container" style={{ fontWeight: 600 }}>{t.containerId}</td>
-                    <td data-label="Driver ID" style={{ color: "#5e6a85", fontSize: "0.8rem" }}>
-                      {t.driverId?.toString().slice(-6) || t.driverId}
+                    <td data-label="Container">
+                      <span className="disp-primary">
+                        <span className="disp-id-icon">
+                          <PackageOpen size={16} strokeWidth={2.35} aria-hidden="true" />
+                        </span>
+                        {t.containerId}
+                      </span>
+                    </td>
+                    <td data-label="Driver ID">
+                      <span className="disp-muted">
+                        <UserCheck size={13} strokeWidth={2.35} aria-hidden="true" />{" "}
+                        {t.driverId?.toString().slice(-6) || t.driverId}
+                      </span>
                     </td>
                     <td data-label="Status">
-                      <span className={`ad-status ${
-                        t.status === "assigned"       ? "ad-status-assigned" :
-                        t.status === "in_transit"     ? "ad-status-transit"  :
-                        t.status === "completed"      ? "ad-status-done"     : "ad-status-assigned"
+                      <span className={`disp-status ${
+                        t.status === "assigned"       ? "disp-status-assigned" :
+                        t.status === "in_transit"     ? "disp-status-transit"  :
+                        t.status === "completed"      ? "disp-status-done"     : "disp-status-assigned"
                       }`}>
+                        {t.status === "completed" ? (
+                          <CheckCircle2 size={13} strokeWidth={2.35} aria-hidden="true" />
+                        ) : (
+                          <Truck size={13} strokeWidth={2.35} aria-hidden="true" />
+                        )}
                         {t.status}
                       </span>
                     </td>
-                    <td data-label="Assigned At" style={{ color: "#5e6a85", fontSize: "0.8rem" }}>
-                      {t.assignedAt ? new Date(t.assignedAt).toLocaleString() : "—"}
+                    <td data-label="Assigned At">
+                      <span className="disp-muted">
+                        <CalendarClock size={13} strokeWidth={2.35} aria-hidden="true" />{" "}
+                        {t.assignedAt ? new Date(t.assignedAt).toLocaleString() : "-"}
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -267,10 +659,9 @@ export default function AdminDispatch() {
             </table>
           )}
         </div>
-
       </div>
 
-      {toast && <div className="ad-toast">{toast}</div>}
+      {toast && <div className="disp-toast">{toast}</div>}
     </>
   );
 }
