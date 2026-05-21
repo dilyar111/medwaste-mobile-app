@@ -1,4 +1,21 @@
 import React, { useEffect, useMemo, useState } from "react";
+import {
+  AlertTriangle,
+  BarChart3,
+  Boxes,
+  CalendarDays,
+  CheckCircle2,
+  ChevronDown,
+  Download,
+  FileBarChart,
+  FileText,
+  Gauge,
+  Loader2,
+  Printer,
+  RefreshCw,
+  Scale,
+  Settings2,
+} from "lucide-react";
 import { getReports } from "../services/api";
 
 const emptyOverview = {
@@ -8,139 +25,684 @@ const emptyOverview = {
   totalWeight: 0,
 };
 
-const wasteTypeColors = ["#1A6EFF", "#00D68F", "#F59E0B", "#8B5CF6"];
-
-/*
-
-  { label: "Total Containers", val: "—", sub: "Active in the system" },
-  { label: "Average Fullness", val: "—", sub: "Average fill level" },
-  { label: "Need Attention", val: "—", sub: "Containers requiring action" },
-  { label: "Total Weight", val: "—", sub: "Total waste weight" },
-*/
+const wasteTypeColors = ["#4f96ce", "#149d80", "#f4a62a", "#8b7bd8"];
 
 const css = `
-  
-
   .rp-root {
+    --rp-bg: #f4f3f8;
+    --rp-card: #ffffff;
+    --rp-ink: #101318;
+    --rp-muted: #7d8490;
+    --rp-line: #e7e7ef;
+    --rp-teal: #149d80;
+    --rp-teal-dark: #0d8069;
+    --rp-teal-soft: #e7f6f1;
+    --rp-blue: #4f96ce;
+    --rp-blue-dark: #286b9d;
+    --rp-blue-soft: #e8f2fb;
+    --rp-red: #e6535d;
+    --rp-red-soft: #fff0f1;
+    --rp-amber: #f4a62a;
+    --rp-amber-soft: #fff8e8;
+    --rp-purple: #8b7bd8;
+    --rp-purple-soft: #f2efff;
+    --rp-shadow: 0 8px 24px rgba(24, 33, 49, .06);
     min-height: 100vh;
-    background: #f0f4f8;
-    font-family: 'Geist', 'DM Sans', sans-serif;
-    color: #1a2035;
-    padding: 32px;
+    overflow-x: hidden;
+    padding: 28px 32px;
+    background: var(--rp-bg);
+    color: var(--rp-ink);
   }
 
-  /* HEADER */
-  .rp-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; }
-  .rp-header h1 { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 4px; }
-  .rp-header p  { color: #5e6a85; font-size: 0.9rem; }
-  .rp-header-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  .rp-root,
+  .rp-root * {
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  .rp-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .rp-header h1 {
+    margin: 0 0 5px;
+    color: var(--rp-ink);
+    font-size: clamp(1.35rem, 5vw, 1.8rem);
+    font-weight: 900;
+    line-height: 1.12;
+  }
+
+  .rp-header p {
+    margin: 0;
+    max-width: 760px;
+    color: var(--rp-muted);
+    font-size: .88rem;
+    line-height: 1.45;
+  }
+
+  .rp-header-btns {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
 
   .rp-btn {
-    padding: 8px 16px; border-radius: 8px; border: 1px solid #e4e9f0;
-    background: #fff; font-size: 0.85rem; font-weight: 500; color: #1a2035;
-    cursor: pointer; transition: all .2s; font-family: inherit;
-    display: inline-flex; align-items: center; gap: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 38px;
+    padding: 0 13px;
+    border: 1px solid rgba(231,231,239,.92);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--rp-ink);
+    cursor: pointer;
+    font: inherit;
+    font-size: .82rem;
+    font-weight: 900;
+    white-space: nowrap;
+    transition: background .2s ease, border-color .2s ease, color .2s ease, transform .2s ease, box-shadow .2s ease;
   }
-  .rp-btn:hover { background: #f0f4f8; }
-  .rp-btn-green { background: #00D68F; color: #0B1A14; border-color: #00D68F; }
-  .rp-btn-green:hover { background: #00A870; }
-  .rp-btn-blue  { background: #1A6EFF; color: #fff; border-color: #1A6EFF; }
-  .rp-btn-blue:hover { background: #0F4ECC; }
 
-  /* CARD */
+  .rp-btn:hover {
+    background: #f8f8fb;
+    transform: translateY(-1px);
+  }
+
+  .rp-btn:disabled {
+    cursor: not-allowed;
+    opacity: .6;
+    transform: none;
+  }
+
+  .rp-btn-green,
+  .rp-btn-blue {
+    border-color: rgba(20,157,128,.2);
+    background: var(--rp-teal);
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(20,157,128,.16);
+  }
+
+  .rp-btn-green:hover,
+  .rp-btn-blue:hover {
+    background: var(--rp-teal-dark);
+  }
+
+  .rp-card,
+  .rp-kpi-card {
+    border: 1px solid rgba(231,231,239,.92);
+    background: rgba(255,255,255,.96);
+    box-shadow: var(--rp-shadow);
+  }
+
   .rp-card {
-    background: #fff; border-radius: 14px;
-    border: 1px solid #e4e9f0; padding: 22px;
+    overflow: hidden;
     margin-bottom: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,.04);
-  }
-  .rp-card-title {
-    font-size: 1rem; font-weight: 700; margin-bottom: 18px; color: #1a2035;
+    padding: 18px;
+    border-radius: 18px;
   }
 
-  /* PARAMS */
-  .rp-params-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
-  .rp-field label { font-size: 0.78rem; font-weight: 500; color: #5e6a85; display: block; margin-bottom: 6px; }
+  .rp-card-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    color: var(--rp-ink);
+    font-size: .96rem;
+    font-weight: 900;
+    line-height: 1.25;
+  }
+
+  .rp-params-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .rp-field label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    color: var(--rp-muted);
+    font-size: .74rem;
+    font-weight: 900;
+    letter-spacing: .04em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  .rp-field-input {
+    position: relative;
+  }
+
   .rp-field input,
   .rp-field select {
-    width: 100%; padding: 9px 12px; border: 1px solid #e4e9f0; border-radius: 8px;
-    font-family: inherit; font-size: 0.88rem; color: #1a2035; background: #f8fafc;
-    outline: none; transition: border-color .2s;
+    width: 100%;
+    min-height: 40px;
+    padding: 0 36px 0 12px;
+    border: 1px solid rgba(231,231,239,.92);
+    border-radius: 12px;
+    background: #f8f8fb;
+    color: var(--rp-ink);
+    outline: none;
+    font: inherit;
+    font-size: .84rem;
+    font-weight: 800;
+    transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
   }
+
+  .rp-field select {
+    cursor: pointer;
+    appearance: none;
+  }
+
   .rp-field input:focus,
-  .rp-field select:focus { border-color: #1A6EFF; background: #fff; }
+  .rp-field select:focus {
+    border-color: rgba(20,157,128,.72);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(20,157,128,.12);
+  }
 
-  /* KPI GRID */
-  .rp-kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 16px; }
+  .rp-select-chevron {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    color: var(--rp-muted);
+    pointer-events: none;
+    transform: translateY(-50%);
+  }
+
+  .rp-error {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1px solid rgba(230,83,93,.24);
+    border-radius: 12px;
+    background: var(--rp-red-soft);
+    color: var(--rp-red);
+    font-size: .82rem;
+    font-weight: 800;
+  }
+
+  .rp-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
   .rp-kpi-card {
-    background: #fff; border-radius: 14px; border: 1px solid #e4e9f0;
-    padding: 20px; position: relative; overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,.04); transition: transform .2s;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    border-radius: 18px;
+    transition: transform .2s ease, box-shadow .2s ease;
   }
-  .rp-kpi-card:hover { transform: translateY(-3px); }
+
+  .rp-kpi-card:hover {
+    transform: translateY(-1px);
+  }
+
   .rp-kpi-card::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-    background: linear-gradient(90deg, #1A6EFF, #00D68F);
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
   }
-  .rp-kpi-label { font-size: 0.78rem; font-weight: 600; color: #5e6a85; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
-  .rp-kpi-val   { font-size: 2rem; font-weight: 800; color: #1a2035; line-height: 1; margin-bottom: 6px; }
-  .rp-kpi-sub   { font-size: 0.72rem; color: #a0aec0; }
 
-  /* BAR CHART */
-  .rp-chart-wrap { margin-top: 8px; }
-  .rp-chart-row  { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-  .rp-chart-dept { font-size: 0.8rem; font-weight: 500; color: #5e6a85; width: 120px; flex-shrink: 0; text-align: right; }
-  .rp-chart-bars { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-  .rp-chart-track { height: 7px; background: #e8edf5; border-radius: 99px; overflow: hidden; }
-  .rp-chart-fill  { height: 100%; border-radius: 99px; transition: width .6s; }
-  .rp-chart-pct   { font-size: 0.78rem; font-weight: 700; color: #1a2035; width: 36px; flex-shrink: 0; }
-  .rp-chart-legend { display: flex; gap: 16px; margin-top: 14px; }
-  .rp-legend-item  { display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: #5e6a85; }
-  .rp-legend-dot   { width: 8px; height: 8px; border-radius: 50%; }
+  .rp-kpi-card:nth-child(1)::before { background: var(--rp-blue); }
+  .rp-kpi-card:nth-child(2)::before { background: var(--rp-teal); }
+  .rp-kpi-card:nth-child(3)::before { background: var(--rp-amber); }
+  .rp-kpi-card:nth-child(4)::before { background: var(--rp-purple); }
 
-  /* Y AXIS LABELS */
-  .rp-chart-yaxis { display: flex; justify-content: space-between; font-size: 0.68rem; color: #a0aec0; margin-bottom: 4px; padding-left: 130px; padding-right: 46px; }
+  .rp-kpi-label {
+    margin-bottom: 7px;
+    color: var(--rp-muted);
+    font-size: .72rem;
+    font-weight: 900;
+    letter-spacing: .04em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
 
-  /* DONUT */
-  .rp-donut-wrap { display: flex; align-items: center; gap: 32px; }
+  .rp-kpi-val {
+    margin-bottom: 5px;
+    color: var(--rp-ink);
+    font-size: clamp(1.25rem, 5vw, 1.65rem);
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .rp-kpi-sub {
+    color: var(--rp-muted);
+    font-size: .74rem;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  .rp-kpi-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border-radius: 12px;
+    background: var(--rp-teal-soft);
+    color: var(--rp-teal-dark);
+  }
+
+  .rp-chart-wrap {
+    margin-top: 8px;
+  }
+
+  .rp-chart-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .rp-chart-dept {
+    width: 120px;
+    flex: 0 0 120px;
+    color: var(--rp-muted);
+    font-size: .8rem;
+    font-weight: 800;
+    line-height: 1.25;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  .rp-chart-bars {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .rp-chart-track {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #eceef4;
+  }
+
+  .rp-chart-fill {
+    height: 100%;
+    max-width: 100%;
+    border-radius: 999px;
+    transition: width .6s ease;
+  }
+
+  .rp-chart-pct {
+    width: 42px;
+    flex: 0 0 42px;
+    color: var(--rp-ink);
+    font-size: .78rem;
+    font-weight: 900;
+    text-align: right;
+  }
+
+  .rp-chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    margin-top: 14px;
+  }
+
+  .rp-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--rp-muted);
+    font-size: .75rem;
+    font-weight: 800;
+  }
+
+  .rp-legend-dot {
+    width: 9px;
+    height: 9px;
+    flex: 0 0 9px;
+    border-radius: 50%;
+  }
+
+  .rp-chart-yaxis {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    padding-left: 130px;
+    padding-right: 46px;
+    color: #a1a8b3;
+    font-size: .68rem;
+    font-weight: 800;
+  }
+
+  .rp-donut-wrap {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+
   .rp-donut {
-    width: 120px; height: 120px; border-radius: 50%; flex-shrink: 0;
-    background: conic-gradient(#1A6EFF 0deg 360deg, #e4e9f0 360deg);
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 122px;
+    height: 122px;
+    flex: 0 0 122px;
+    border-radius: 50%;
+    background: conic-gradient(#4f96ce 0deg 360deg, #e4e9f0 360deg);
   }
+
   .rp-donut-inner {
-    width: 80px; height: 80px; border-radius: 50%; background: #fff;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    width: 82px;
+    height: 82px;
+    border: 1px solid rgba(231,231,239,.8);
+    border-radius: 50%;
+    background: #fff;
   }
-  .rp-donut-pct { font-size: 1.1rem; font-weight: 800; color: #1a2035; }
-  .rp-donut-sub { font-size: 0.6rem; color: #5e6a85; }
-  .rp-waste-list { flex: 1; display: flex; flex-direction: column; gap: 10px; }
-  .rp-waste-row  { display: flex; align-items: center; gap: 10px; }
-  .rp-waste-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-  .rp-waste-name { font-size: 0.85rem; font-weight: 500; flex: 1; }
-  .rp-waste-bar-track { width: 100px; height: 5px; background: #e8edf5; border-radius: 99px; overflow: hidden; }
-  .rp-waste-bar-fill  { height: 100%; border-radius: 99px; }
-  .rp-waste-pct  { font-size: 0.8rem; font-weight: 700; color: #1a2035; min-width: 36px; text-align: right; }
 
-  /* TABLE */
-  .rp-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-  .rp-table thead tr { border-bottom: 2px solid #f0f4f8; }
-  .rp-table th { padding: 10px 14px; text-align: left; font-size: 0.72rem; font-weight: 700; color: #5e6a85; text-transform: uppercase; letter-spacing: .06em; }
-  .rp-table tbody tr { border-bottom: 1px solid #f0f4f8; transition: background .15s; }
-  .rp-table tbody tr:hover { background: #f8fbff; }
-  .rp-table td { padding: 12px 14px; color: #1a2035; vertical-align: middle; }
-  .rp-fullness-cell { display: flex; align-items: center; gap: 8px; }
-  .rp-fullness-mini { width: 60px; height: 5px; background: #e8edf5; border-radius: 99px; overflow: hidden; }
-  .rp-fullness-mini-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #1A6EFF, #00D68F); }
+  .rp-donut-pct {
+    color: var(--rp-ink);
+    font-size: 1.05rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .rp-donut-sub {
+    margin-top: 4px;
+    color: var(--rp-muted);
+    font-size: .62rem;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+
+  .rp-waste-list {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .rp-waste-row {
+    display: grid;
+    grid-template-columns: 10px minmax(0, 1fr) 100px 42px;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .rp-waste-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .rp-waste-name {
+    color: var(--rp-ink);
+    font-size: .84rem;
+    font-weight: 800;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .rp-waste-bar-track {
+    height: 6px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #eceef4;
+  }
+
+  .rp-waste-bar-fill {
+    height: 100%;
+    max-width: 100%;
+    border-radius: 999px;
+  }
+
+  .rp-waste-pct {
+    color: var(--rp-ink);
+    font-size: .78rem;
+    font-weight: 900;
+    text-align: right;
+  }
+
+  .rp-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .rp-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .84rem;
+  }
+
+  .rp-table th {
+    padding: 12px 14px;
+    background: #f8f8fb;
+    color: var(--rp-muted);
+    font-size: .7rem;
+    font-weight: 900;
+    letter-spacing: .06em;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  .rp-table td {
+    padding: 13px 14px;
+    border-top: 1px solid #f2f3f7;
+    color: var(--rp-ink);
+    vertical-align: middle;
+  }
+
+  .rp-table tbody tr:hover td {
+    background: #fbfcfd;
+  }
+
+  .rp-fullness-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 900;
+  }
+
+  .rp-fullness-mini {
+    width: 62px;
+    height: 6px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #eceef4;
+  }
+
+  .rp-fullness-mini-fill {
+    height: 100%;
+    max-width: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--rp-blue), var(--rp-teal));
+  }
+
   .rp-attention-badge {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 3px 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 900;
+    line-height: 1.2;
+    white-space: nowrap;
   }
-  .rp-badge-warn { background: #fff7e6; color: #D97706; }
-  .rp-badge-ok   { background: #e6faf3; color: #00A870; }
 
-  @media (max-width: 900px) {
-    .rp-kpi-grid, .rp-params-grid { grid-template-columns: repeat(2,1fr); }
+  .rp-badge-warn {
+    background: var(--rp-amber-soft);
+    color: #8a5a0a;
+  }
+
+  .rp-badge-ok {
+    background: var(--rp-teal-soft);
+    color: var(--rp-teal-dark);
+  }
+
+  .rp-empty {
+    padding: 24px;
+    color: var(--rp-muted);
+    font-size: .86rem;
+    font-weight: 800;
+    text-align: center;
+  }
+
+  @media(max-width: 980px) {
+    .rp-root {
+      padding: 16px;
+    }
+
+    .rp-kpi-grid,
+    .rp-params-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+  }
+
+  @media(max-width: 700px) {
+    .rp-header {
+      align-items: stretch;
+      flex-direction: column;
+      margin-bottom: 16px;
+    }
+
+    .rp-header h1 {
+      font-size: 1.45rem;
+    }
+
+    .rp-header p {
+      font-size: .82rem;
+    }
+
+    .rp-header-btns {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      width: 100%;
+    }
+
+    .rp-header-btns .rp-btn:last-child {
+      grid-column: 1 / -1;
+    }
+
+    .rp-btn {
+      width: 100%;
+      min-height: 38px;
+      padding: 0 10px;
+      font-size: .78rem;
+    }
+
+    .rp-card {
+      padding: 14px;
+      border-radius: 16px;
+    }
+
+    .rp-params-grid,
+    .rp-kpi-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .rp-chart-yaxis {
+      display: none;
+    }
+
+    .rp-chart-row {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 6px;
+      padding: 10px;
+      border: 1px solid rgba(231,231,239,.72);
+      border-radius: 14px;
+      background: #f8f8fb;
+    }
+
+    .rp-chart-dept,
+    .rp-chart-pct {
+      width: auto;
+      flex: none;
+      text-align: left;
+    }
+
+    .rp-donut-wrap {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .rp-donut {
+      align-self: center;
+    }
+
+    .rp-waste-row {
+      grid-template-columns: 10px minmax(0, 1fr) 42px;
+    }
+
+    .rp-waste-bar-track {
+      grid-column: 2 / -1;
+      width: 100%;
+    }
+
+    .rp-table,
+    .rp-table tbody,
+    .rp-table tr,
+    .rp-table td {
+      display: block;
+      width: 100%;
+    }
+
+    .rp-table thead {
+      display: none;
+    }
+
+    .rp-table tr {
+      margin: 10px 0;
+      overflow: hidden;
+      border: 1px solid var(--rp-line);
+      border-radius: 14px;
+      background: #fff;
+    }
+
+    .rp-table td {
+      padding: 10px 12px;
+      border-top: 1px solid #f3f4f8;
+    }
+
+    .rp-table td:first-child {
+      border-top: 0;
+    }
+
+    .rp-table td[data-label]::before {
+      content: attr(data-label);
+      display: block;
+      margin-bottom: 5px;
+      color: #6b7280;
+      font-size: .68rem;
+      font-weight: 900;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
   }
 `;
 
@@ -321,84 +883,132 @@ function Reports() {
 
   const primaryWaste = wasteTypes[0] || { name: "No Data", pct: 0 };
   const kpis = [
-    { label: "Total Containers", val: overview.totalContainers, sub: "Active in the system" },
-    { label: "Average Fullness", val: `${overview.avgFullness}%`, sub: "Average fill level" },
-    { label: "Need Attention", val: overview.needAttention, sub: "Containers requiring action" },
-    { label: "Total Weight", val: `${overview.totalWeight.toFixed(1)} kg`, sub: "Total waste weight" },
+    { label: "Total Containers", val: overview.totalContainers, sub: "Active in the system", icon: Boxes },
+    { label: "Average Fullness", val: `${overview.avgFullness}%`, sub: "Average fill level", icon: Gauge },
+    { label: "Need Attention", val: overview.needAttention, sub: "Containers requiring action", icon: AlertTriangle },
+    { label: "Total Weight", val: `${overview.totalWeight.toFixed(1)} kg`, sub: "Total waste weight", icon: Scale },
   ];
 
   return (
     <>
       <style>{css}</style>
       <div className="rp-root">
-
-        {/* HEADER */}
         <div className="rp-header">
           <div>
             <h1>Reports & Analytics</h1>
             <p>Data analysis and statistics for the waste management system</p>
           </div>
           <div className="rp-header-btns">
-            <button className="rp-btn" onClick={handlePrint} disabled={loading}> Print</button>
-            <button className="rp-btn" onClick={handleExport} disabled={loading}> Export</button>
-            <button className="rp-btn rp-btn-blue" onClick={() => saveOfficialReport(overview, departments)} disabled={loading}>+ Generate Report</button>
+            <button className="rp-btn" onClick={handlePrint} disabled={loading} type="button">
+              <Printer size={15} strokeWidth={2.35} aria-hidden="true" />
+              Print
+            </button>
+            <button className="rp-btn" onClick={handleExport} disabled={loading} type="button">
+              <Download size={15} strokeWidth={2.35} aria-hidden="true" />
+              Export
+            </button>
+            <button className="rp-btn rp-btn-blue" onClick={() => saveOfficialReport(overview, departments)} disabled={loading} type="button">
+              <FileText size={15} strokeWidth={2.35} aria-hidden="true" />
+              Generate Report
+            </button>
           </div>
         </div>
 
-        {/* REPORT PARAMETERS */}
         <div className="rp-card">
-          <div className="rp-card-title">Report Parameters</div>
+          <div className="rp-card-title">
+            <Settings2 size={18} strokeWidth={2.35} aria-hidden="true" />
+            Report Parameters
+          </div>
           <div className="rp-params-grid">
             <div className="rp-field">
-              <label>Period</label>
+              <label>
+                <CalendarDays size={13} strokeWidth={2.35} aria-hidden="true" />
+                Period
+              </label>
               <input type="text" placeholder="e.g. Feb 2026" value={period} onChange={e => setPeriod(e.target.value)} />
             </div>
             <div className="rp-field">
-              <label>Report type</label>
-              <select value={reportType} onChange={e => setReportType(e.target.value)}>
-                <option value="overview">General overview</option>
-                <option value="dept">By department</option>
-                <option value="type">By waste type</option>
-                <option value="alerts">Alerts</option>
-              </select>
+              <label>
+                <FileBarChart size={13} strokeWidth={2.35} aria-hidden="true" />
+                Report type
+              </label>
+              <div className="rp-field-input">
+                <select value={reportType} onChange={e => setReportType(e.target.value)}>
+                  <option value="overview">General overview</option>
+                  <option value="dept">By department</option>
+                  <option value="type">By waste type</option>
+                  <option value="alerts">Alerts</option>
+                </select>
+                <ChevronDown className="rp-select-chevron" size={15} strokeWidth={2.35} aria-hidden="true" />
+              </div>
             </div>
             <div className="rp-field">
-              <label>Time aggregation</label>
-              <select value={aggregation} onChange={e => setAggregation(e.target.value)}>
-                <option value="day">By day</option>
-                <option value="week">By week</option>
-                <option value="month">By month</option>
-              </select>
+              <label>
+                <BarChart3 size={13} strokeWidth={2.35} aria-hidden="true" />
+                Time aggregation
+              </label>
+              <div className="rp-field-input">
+                <select value={aggregation} onChange={e => setAggregation(e.target.value)}>
+                  <option value="day">By day</option>
+                  <option value="week">By week</option>
+                  <option value="month">By month</option>
+                </select>
+                <ChevronDown className="rp-select-chevron" size={15} strokeWidth={2.35} aria-hidden="true" />
+              </div>
             </div>
             <div className="rp-field" style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-              <button className="rp-btn rp-btn-blue" style={{ width: "100%", justifyContent: "center" }} onClick={loadReports} disabled={loading}>
-                 {loading ? "Loading..." : "Refresh Data"}
+              <button className="rp-btn rp-btn-blue" style={{ width: "100%", justifyContent: "center" }} onClick={loadReports} disabled={loading} type="button">
+                {loading ? (
+                  <>
+                    <Loader2 size={15} strokeWidth={2.35} aria-hidden="true" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={15} strokeWidth={2.35} aria-hidden="true" />
+                    Refresh Data
+                  </>
+                )}
               </button>
             </div>
           </div>
-          {error && <div style={{ marginTop: 12, color: "#B91C1C", fontSize: "0.82rem" }}>{error}</div>}
-        </div>
-
-        {/* KPI */}
-        <div className="rp-kpi-grid">
-          {kpis.map((k) => (
-            <div className="rp-kpi-card" key={k.label}>
-              <div className="rp-kpi-label">{k.label}</div>
-              <div className="rp-kpi-val">{k.val}</div>
-              <div className="rp-kpi-sub">{k.sub}</div>
+          {error && (
+            <div className="rp-error">
+              <AlertTriangle size={15} strokeWidth={2.35} aria-hidden="true" />
+              {error}
             </div>
-          ))}
+          )}
         </div>
 
-        {/* FULLNESS BY DEPARTMENT */}
+        <div className="rp-kpi-grid">
+          {kpis.map((k) => {
+            const Icon = k.icon;
+            return (
+              <div className="rp-kpi-card" key={k.label}>
+                <div>
+                  <div className="rp-kpi-label">{k.label}</div>
+                  <div className="rp-kpi-val">{k.val}</div>
+                  <div className="rp-kpi-sub">{k.sub}</div>
+                </div>
+                <span className="rp-kpi-icon">
+                  <Icon size={20} strokeWidth={2.35} aria-hidden="true" />
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
         <div className="rp-card">
-          <div className="rp-card-title">Fullness by Department</div>
+          <div className="rp-card-title">
+            <BarChart3 size={18} strokeWidth={2.35} aria-hidden="true" />
+            Fullness by Department
+          </div>
           <div className="rp-chart-yaxis">
             {[0, 20, 40, 60, 80, 100].map(v => <span key={v}>{v}</span>)}
           </div>
           <div className="rp-chart-wrap">
             {barData.length === 0 ? (
-              <div style={{ padding: 20, color: "#a0aec0", textAlign: "center" }}>
+              <div className="rp-empty">
                 {loading ? "Loading report data..." : "No department data available."}
               </div>
             ) : barData.map((d) => (
@@ -406,13 +1016,13 @@ function Reports() {
                 <div className="rp-chart-dept">{d.label}</div>
                 <div className="rp-chart-bars">
                   <div className="rp-chart-track">
-                    <div className="rp-chart-fill" style={{ width: `${d.fullness}%`, background: "linear-gradient(90deg,#1A6EFF,#00D68F)" }} />
+                    <div className="rp-chart-fill" style={{ width: `${d.fullness}%`, background: "linear-gradient(90deg,#4f96ce,#149d80)" }} />
                   </div>
                   <div className="rp-chart-track">
-                    <div className="rp-chart-fill" style={{ width: `${d.countPct ?? 0}%`, background: "#8B5CF6" }} />
+                    <div className="rp-chart-fill" style={{ width: `${d.countPct ?? 0}%`, background: "#8b7bd8" }} />
                   </div>
                   <div className="rp-chart-track">
-                    <div className="rp-chart-fill" style={{ width: `${d.weight}%`, background: "#F59E0B" }} />
+                    <div className="rp-chart-fill" style={{ width: `${d.weight}%`, background: "#f4a62a" }} />
                   </div>
                 </div>
                 <div className="rp-chart-pct">{d.fullness}%</div>
@@ -420,15 +1030,17 @@ function Reports() {
             ))}
           </div>
           <div className="rp-chart-legend">
-            <div className="rp-legend-item"><div className="rp-legend-dot" style={{ background: "#1A6EFF" }} /> Avg. fullness</div>
-            <div className="rp-legend-item"><div className="rp-legend-dot" style={{ background: "#8B5CF6" }} /> Container count</div>
-            <div className="rp-legend-item"><div className="rp-legend-dot" style={{ background: "#F59E0B" }} /> Total weight</div>
+            <div className="rp-legend-item"><div className="rp-legend-dot" style={{ background: "#4f96ce" }} /> Avg. fullness</div>
+            <div className="rp-legend-item"><div className="rp-legend-dot" style={{ background: "#8b7bd8" }} /> Container count</div>
+            <div className="rp-legend-item"><div className="rp-legend-dot" style={{ background: "#f4a62a" }} /> Total weight</div>
           </div>
         </div>
 
-        {/* WASTE TYPE DISTRIBUTION */}
         <div className="rp-card">
-          <div className="rp-card-title">Waste Type Distribution</div>
+          <div className="rp-card-title">
+            <Gauge size={18} strokeWidth={2.35} aria-hidden="true" />
+            Waste Type Distribution
+          </div>
           <div className="rp-donut-wrap">
             <div className="rp-donut" style={{ background: donutBackground }}>
               <div className="rp-donut-inner">
@@ -438,7 +1050,7 @@ function Reports() {
             </div>
             <div className="rp-waste-list">
               {wasteTypes.length === 0 ? (
-                <div style={{ color: "#a0aec0", fontSize: "0.85rem" }}>
+                <div className="rp-empty" style={{ padding: 0, textAlign: "left" }}>
                   {loading ? "Loading waste type data..." : "No waste type data available."}
                 </div>
               ) : wasteTypes.map((w) => (
@@ -455,50 +1067,63 @@ function Reports() {
           </div>
         </div>
 
-        {/* TABLE */}
         <div className="rp-card">
-          <div className="rp-card-title">Department Statistics</div>
-          <table className="rp-table">
-            <thead>
-              <tr>
-                <th>Department</th>
-                <th>Containers</th>
-                <th>Avg. Fullness</th>
-                <th>Total Weight (kg)</th>
-                <th>Need Attention</th>
-              </tr>
-            </thead>
-            <tbody>
-              {departments.length === 0 ? (
+          <div className="rp-card-title">
+            <FileBarChart size={18} strokeWidth={2.35} aria-hidden="true" />
+            Department Statistics
+          </div>
+          <div className="rp-table-wrap">
+            <table className="rp-table">
+              <thead>
                 <tr>
-                  <td colSpan="5" style={{ textAlign: "center", color: "#a0aec0", padding: 24 }}>
-                    {loading ? "Loading department statistics..." : "No department statistics available."}
-                  </td>
+                  <th>Department</th>
+                  <th>Containers</th>
+                  <th>Avg. Fullness</th>
+                  <th>Total Weight (kg)</th>
+                  <th>Need Attention</th>
                 </tr>
-              ) : departments.map((dep) => (
-                <tr key={dep.name}>
-                  <td style={{ fontWeight: 600 }}>{dep.name}</td>
-                  <td>{dep.bins}</td>
-                  <td>
-                    <div className="rp-fullness-cell">
-                      <div className="rp-fullness-mini">
-                        <div className="rp-fullness-mini-fill" style={{ width: `${dep.avgFullness}%` }} />
+              </thead>
+              <tbody>
+                {departments.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="rp-empty">
+                      {loading ? "Loading department statistics..." : "No department statistics available."}
+                    </td>
+                  </tr>
+                ) : departments.map((dep) => (
+                  <tr key={dep.name}>
+                    <td data-label="Department" style={{ fontWeight: 900 }}>{dep.name}</td>
+                    <td data-label="Containers">{dep.bins}</td>
+                    <td data-label="Avg. Fullness">
+                      <div className="rp-fullness-cell">
+                        <div className="rp-fullness-mini">
+                          <div className="rp-fullness-mini-fill" style={{ width: `${dep.avgFullness}%` }} />
+                        </div>
+                        {dep.avgFullness}%
                       </div>
-                      {dep.avgFullness}%
-                    </div>
-                  </td>
-                  <td>{dep.totalWeight.toFixed(1)}</td>
-                  <td>
-                    <span className={`rp-attention-badge ${dep.needsAttention > 0 ? "rp-badge-warn" : "rp-badge-ok"}`}>
-                      {dep.needsAttention > 0 ? `⚠ ${dep.needsAttention}` : "✓ All clear"}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    </td>
+                    <td data-label="Total Weight (kg)">{dep.totalWeight.toFixed(1)}</td>
+                    <td data-label="Need Attention">
+                      <span className={`rp-attention-badge ${dep.needsAttention > 0 ? "rp-badge-warn" : "rp-badge-ok"}`}>
+                        {dep.needsAttention > 0 ? (
+                          <>
+                            <AlertTriangle size={13} strokeWidth={2.45} aria-hidden="true" />
+                            {dep.needsAttention}
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 size={13} strokeWidth={2.45} aria-hidden="true" />
+                            All clear
+                          </>
+                        )}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-
       </div>
     </>
   );
