@@ -1,372 +1,1166 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import {
+  Activity,
+  Bell,
+  Boxes,
+  ChartColumn,
+  CircleAlert,
+  CircleCheck,
+  Clock,
+  Gauge,
+  LayoutDashboard,
+  MapPin,
+  PackageCheck,
+  RefreshCw,
+  Route,
+  Settings,
+  ShieldCheck,
+  Truck,
+  User,
+} from "lucide-react";
 import { getBins, getPredict, getAlerts, getNotifications, markRead } from "../services/api";
 import { useSocket } from "../hooks/useSocket";
 
-// ── CSS (unchanged) ───────────────────────────────────────────
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
-  .db-root { min-height:100vh; background:#f0f4f8; font-family:'DM Sans',sans-serif; color:#1a2035; }
-  .db-topbar { background:#fff; border-bottom:1px solid #e4e9f0; padding:0 32px; height:60px;
-    display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100;
-    box-shadow:0 1px 8px rgba(0,0,0,.05); }
-  .db-brand { font-weight:800; font-size:1.25rem; background:linear-gradient(120deg,#1A6EFF,#00D68F);
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-  .db-nav-right { display:flex; align-items:center; gap:12px; }
-  .db-user-pill { display:flex; align-items:center; gap:8px; background:#f0f4f8; border-radius:999px;
-    padding:5px 12px 5px 6px; font-size:.85rem; font-weight:500; }
-  .db-avatar { width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,#1A6EFF,#00D68F);
-    display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:.75rem; }
-  .db-online-dot { width:8px; height:8px; border-radius:50%; background:#00D68F;
-    box-shadow:0 0 0 2px #fff,0 0 0 4px rgba(0,214,143,.3); animation:pulse 2s infinite; }
-  @keyframes pulse {
-    0%,100%{box-shadow:0 0 0 2px #fff,0 0 0 4px rgba(0,214,143,.3);}
-    50%{box-shadow:0 0 0 2px #fff,0 0 0 6px rgba(0,214,143,.15);}
-  }
-  .db-btn { padding:7px 16px; border-radius:8px; border:none; cursor:pointer;
-    font-family:'DM Sans',sans-serif; font-size:.85rem; font-weight:500; transition:all .2s; }
-  .db-btn-ghost { background:#f0f4f8; color:#5e6a85; }
-  .db-btn-ghost:hover { background:#e4e9f0; }
-  .db-btn-danger { background:#fff0f1; color:#e53e3e; border:1px solid #fed7d7; }
-  .db-btn-danger:hover { background:#fed7d7; }
-  .db-btn-green { background:#00D68F; color:#0B1A14; }
-  .db-btn-green:hover { background:#00A870; }
-  .db-period-tabs { display:flex; gap:4px; background:#e8edf5; border-radius:8px; padding:3px; }
-  .db-period-tabs button { padding:5px 14px; border:none; border-radius:6px; background:transparent;
-    font-size:.8rem; font-weight:500; color:#5e6a85; cursor:pointer; transition:all .2s; }
-  .db-period-tabs button.active { background:#fff; color:#1a2035; box-shadow:0 1px 4px rgba(0,0,0,.1); }
-  .db-main { padding:28px 32px; max-width:1400px; margin:0 auto; }
-  .db-page-header { margin-bottom:24px; }
-  .db-page-header h1 { font-size:1.9rem; font-weight:800; letter-spacing:-.03em; color:#1a2035; margin-bottom:2px; }
-  .db-page-header p { color:#5e6a85; font-size:.9rem; }
-  .db-toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
-  .db-toolbar-left { display:flex; align-items:center; gap:10px; }
-  .db-status-badge { display:flex; align-items:center; gap:6px; background:#e6faf3; color:#00A870;
-    border-radius:999px; padding:4px 12px; font-size:.8rem; font-weight:600; }
-  .db-autorefresh { display:flex; align-items:center; gap:6px; background:#fff; border:1px solid #e4e9f0;
-    border-radius:8px; padding:5px 12px; font-size:.8rem; color:#5e6a85; }
-  .db-stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:20px; }
-  .db-stat-card { background:#fff; border-radius:14px; padding:20px 22px; border:1px solid #e4e9f0;
-    transition:transform .2s,box-shadow .2s; position:relative; overflow:hidden; }
-  .db-stat-card:hover { transform:translateY(-3px); box-shadow:0 8px 24px rgba(0,0,0,.08); }
-  .db-stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px;
-    background:linear-gradient(90deg,#1A6EFF,#00D68F); }
-  .db-stat-label { font-size:.78rem; font-weight:600; color:#5e6a85; text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px; }
-  .db-stat-value { font-size:2rem; font-weight:800; color:#1a2035; line-height:1; margin-bottom:6px; }
-  .db-stat-delta { display:inline-flex; align-items:center; gap:3px; font-size:.75rem; font-weight:600; padding:2px 7px; border-radius:999px; }
-  .db-delta-up   { background:#e6faf3; color:#00A870; }
-  .db-delta-down { background:#fff0f1; color:#e53e3e; }
-  .db-delta-neu  { background:#f0f4f8; color:#5e6a85; }
-  .db-stat-sub { font-size:.78rem; color:#5e6a85; margin-top:4px; }
-  .db-stat-forecast { font-size:.75rem; color:#1A6EFF; margin-top:6px; font-weight:500; }
-  .db-two-col { display:grid; grid-template-columns:2fr 1fr; gap:16px; margin-bottom:20px; }
-  .db-card { background:#fff; border-radius:14px; border:1px solid #e4e9f0; padding:22px; margin-bottom:16px; }
-  .db-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
-  .db-card-title { font-size:1rem; font-weight:700; color:#1a2035; }
-  .db-card-link { font-size:.8rem; color:#1A6EFF; text-decoration:none; cursor:pointer; font-weight:500; }
-  .db-card-link:hover { text-decoration:underline; }
-  .db-analytics-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:0; }
-  .db-analytics-item { text-align:center; padding:16px 10px; border-right:1px solid #e4e9f0; }
-  .db-analytics-item:last-child { border-right:none; }
-  .db-analytics-val { font-size:1.6rem; font-weight:800; color:#1a2035; }
-  .db-analytics-label { font-size:.78rem; color:#5e6a85; margin-top:4px; }
-  .db-chart-area { height:140px; background:linear-gradient(180deg,#f0f8ff 0%,#fff 100%);
-    border-radius:8px; border:1px solid #e4e9f0; display:flex; align-items:flex-end;
-    padding:10px; gap:6px; overflow:hidden; margin-top:16px; }
-  .db-bar { flex:1; background:linear-gradient(180deg,#1A6EFF,#00D68F); border-radius:4px 4px 0 0; opacity:.7; transition:opacity .2s; }
-  .db-bar:hover { opacity:1; }
-  .db-chart-legend { display:flex; gap:16px; margin-top:10px; }
-  .db-legend-item { display:flex; align-items:center; gap:5px; font-size:.75rem; color:#5e6a85; }
-  .db-legend-dot { width:8px; height:8px; border-radius:50%; }
-  .db-donut-wrap { display:flex; flex-direction:column; align-items:center; gap:14px; }
-  .db-donut { width:100px; height:100px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
-  .db-donut-inner { width:68px; height:68px; border-radius:50%; background:#fff;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; }
-  .db-donut-pct { font-size:1rem; font-weight:800; color:#1a2035; }
-  .db-donut-sub { font-size:.6rem; color:#5e6a85; }
-  .db-waste-types { width:100%; }
-  .db-waste-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-  .db-waste-label { display:flex; align-items:center; gap:6px; font-size:.8rem; }
-  .db-waste-dot { width:8px; height:8px; border-radius:50%; }
-  .db-waste-bar-wrap { flex:1; height:5px; background:#e4e9f0; border-radius:99px; margin:0 8px; }
-  .db-waste-bar-fill { height:100%; border-radius:99px; }
-  .db-waste-pct { font-size:.78rem; font-weight:600; color:#1a2035; }
-  .db-predictions-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:12px; }
-  .db-pred-card { background:#fff; border-radius:12px; border:1px solid #e4e9f0; padding:16px; transition:transform .2s,box-shadow .2s; }
-  .db-pred-card:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,.07); }
-  .db-pred-id { font-weight:700; font-size:.95rem; color:#1a2035; margin-bottom:2px; }
-  .db-pred-meta { font-size:.75rem; color:#5e6a85; margin-bottom:10px; }
-  .db-pred-row { display:flex; justify-content:space-between; font-size:.78rem; margin-bottom:4px; }
-  .db-pred-row-label { color:#5e6a85; }
-  .db-pred-row-val { font-weight:500; color:#1a2035; }
-  .db-pred-confidence { margin-top:10px; }
-  .db-pred-conf-bar { height:4px; background:#e4e9f0; border-radius:99px; margin-top:4px; }
-  .db-pred-conf-fill { height:100%; border-radius:99px; background:linear-gradient(90deg,#1A6EFF,#00D68F); }
-  .db-pred-btn { width:100%; margin-top:12px; padding:8px; border-radius:8px;
-    border:1px solid #1A6EFF; color:#1A6EFF; background:transparent;
-    font-size:.8rem; font-weight:600; cursor:pointer; transition:all .2s; }
-  .db-pred-btn:hover { background:#1A6EFF; color:#fff; }
-  .db-badge { display:inline-flex; align-items:center; gap:4px; font-size:.72rem; font-weight:600; padding:2px 8px; border-radius:999px; }
-  .db-badge-green { background:#e6faf3; color:#00A870; }
-  .db-badge-blue  { background:#eff5ff; color:#1A6EFF; }
-  .db-attention-empty { text-align:center; padding:24px; color:#5e6a85; font-size:.85rem; }
-  .db-attention-icon { font-size:2rem; margin-bottom:6px; }
-  .db-actions-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
-  .db-action-btn { display:flex; flex-direction:column; align-items:center; gap:6px;
-    background:#fff; border:1px solid #e4e9f0; border-radius:12px; padding:14px 8px;
-    cursor:pointer; transition:all .2s; position:relative; }
-  .db-action-btn:hover { background:#f0f4f8; transform:translateY(-2px); }
-  .db-action-icon { font-size:1.3rem; }
-  .db-action-label { font-size:.75rem; font-weight:500; color:#1a2035; text-align:center; }
-  .db-settings-list { display:flex; flex-direction:column; gap:14px; }
-  .db-settings-row { display:flex; align-items:center; justify-content:space-between; }
-  .db-settings-name { font-size:.85rem; font-weight:500; color:#1a2035; }
-  .db-settings-sub  { font-size:.75rem; color:#5e6a85; }
-  .db-toggle { width:36px; height:20px; border-radius:99px; border:none; cursor:pointer;
-    transition:background .2s; position:relative; flex-shrink:0; }
-  .db-toggle.on  { background:#1A6EFF; }
-  .db-toggle.off { background:#d1d9e6; }
-  .db-toggle::after { content:''; position:absolute; top:3px; width:14px; height:14px;
-    border-radius:50%; background:#fff; transition:left .2s; }
-  .db-toggle.on::after  { left:19px; }
-  .db-toggle.off::after { left:3px; }
-  .db-skeleton { background:linear-gradient(90deg,#f0f4f8 25%,#e4e9f0 50%,#f0f4f8 75%);
-    background-size:200% 100%; animation:shimmer 1.5s infinite; border-radius:6px; }
-  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-
-  .mobile-shell .db-topbar {
-    padding: 0 14px;
-    height: 54px;
-  }
-  .mobile-shell .db-brand { font-size: 1rem; }
-  .mobile-shell .db-main {
-    padding: 14px;
-    min-width: 0;
-  }
-  .mobile-shell .db-page-header h1 {
-    font-size: 1.35rem;
-  }
-  .mobile-shell .db-toolbar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .mobile-shell .db-toolbar-left,
-  .mobile-shell .db-nav-right {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-  .mobile-shell .db-period-tabs {
-    width: 100%;
-    justify-content: space-between;
-  }
-  .mobile-shell .db-period-tabs button {
-    flex: 1;
-    text-align: center;
-  }
-  .mobile-shell .db-stats-grid,
-  .mobile-shell .db-two-col,
-  .mobile-shell .db-predictions-grid {
-    grid-template-columns: 1fr !important;
-  }
-  .mobile-shell .db-analytics-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 0 !important;
-  }
-  .mobile-shell .db-actions-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
-  .mobile-shell .db-card {
-    padding: 14px;
-    min-width: 0;
+  .db-root {
+    --db-bg: #f4f3f8;
+    --db-card: #ffffff;
+    --db-ink: #101318;
+    --db-muted: #7d8490;
+    --db-line: #e7e7ef;
+    --db-teal: #149d80;
+    --db-teal-dark: #0d8069;
+    --db-teal-soft: #e7f6f1;
+    --db-blue: #4f96ce;
+    --db-blue-soft: #e8f2fb;
+    --db-warning: #f4a62a;
+    --db-danger: #e05d63;
+    --db-shadow: 0 8px 24px rgba(24, 33, 49, .06);
+    min-height: 100vh;
     overflow-x: hidden;
+    background: var(--db-bg);
+    color: var(--db-ink);
   }
-  .mobile-shell .db-card-header {
-    align-items: flex-start;
-    flex-wrap: wrap;
-    gap: 8px 10px;
-  }
-  .mobile-shell .db-card-header > div {
+
+  .db-root,
+  .db-root * {
+    box-sizing: border-box;
     min-width: 0;
-    flex-wrap: wrap;
   }
-  .mobile-shell .db-card-title {
-    line-height: 1.3;
+
+  .db-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    min-height: 64px;
+    padding: 12px clamp(16px, 3vw, 28px);
+    border-bottom: 1px solid rgba(231, 231, 239, .82);
+    background: rgba(255,255,255,.88);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 1px 8px rgba(24, 33, 49, .05);
   }
-  .mobile-shell .db-card-link {
+
+  .db-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--db-teal);
+    font-size: 1.12rem;
+    font-weight: 900;
+    letter-spacing: .03em;
     white-space: nowrap;
   }
-  .mobile-shell .db-analytics-item {
-    border-right: 0;
-    border-bottom: 1px solid #e4e9f0;
-    padding: 14px 8px;
+
+  .db-brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--db-teal);
+    color: #fff;
+    box-shadow: 0 10px 24px rgba(20,157,128,.20);
   }
-  .mobile-shell .db-analytics-item:nth-child(odd) {
-    border-right: 1px solid #e4e9f0;
+
+  .db-nav-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
-  .mobile-shell .db-analytics-item:nth-child(n+3) {
-    border-bottom: 0;
+
+  .db-user-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+    padding: 6px 10px 6px 6px;
+    border: 1px solid rgba(231,231,239,.92);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--db-ink);
+    box-shadow: 0 8px 22px rgba(24, 33, 49, .05);
+    font-size: .82rem;
+    font-weight: 800;
   }
-  .mobile-shell .db-chart-area {
-    height: 120px;
-    gap: 2px;
-    padding: 8px;
-  }
-  .mobile-shell .db-bar {
-    min-width: 2px;
-  }
-  .mobile-shell .db-donut-wrap {
-    align-items: stretch !important;
-  }
-  .mobile-shell .db-donut {
-    margin: 0 auto;
-  }
-  .mobile-shell .db-waste-label {
-    min-width: 0;
-    flex: 1;
-  }
-  .mobile-shell .db-waste-label span {
+
+  .db-user-pill span {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .mobile-shell .db-waste-bar-wrap {
-    width: 100%;
-    margin: 0 0 8px;
-  }
-  .mobile-shell .db-predictions-header {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: start;
-  }
-  .mobile-shell .db-predictions-title-row {
-    display: flex;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    min-width: 0;
-    gap: 6px 8px;
-  }
-  .mobile-shell .db-badge {
-    max-width: 100%;
-    white-space: normal;
-    line-height: 1.25;
-  }
-  .mobile-shell .db-pred-row {
-    gap: 8px;
-    align-items: flex-start;
-  }
-  .mobile-shell .db-pred-row-label {
-    flex-shrink: 0;
-  }
-  .mobile-shell .db-pred-row-val,
-  .mobile-shell .db-pred-id,
-  .mobile-shell .db-pred-meta {
-    min-width: 0;
-    overflow-wrap: anywhere;
-  }
-  .mobile-shell .db-user-pill {
-    font-size: .75rem;
-    padding: 4px 10px 4px 5px;
+
+  .db-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    border-radius: 50%;
+    background: var(--db-teal-soft);
+    color: var(--db-teal-dark);
+    font-weight: 900;
+    font-size: .78rem;
   }
 
-  @media(max-width:1100px){
-    .db-stats-grid{grid-template-columns:repeat(2,1fr);}
-    .db-two-col{grid-template-columns:1fr;}
-    .db-predictions-grid{grid-template-columns:repeat(2,1fr);}
-    .db-actions-grid{grid-template-columns:repeat(3,1fr);}
+  .db-role-badge {
+    flex: 0 0 auto;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #f7f8fb;
+    color: var(--db-muted);
+    font-size: .68rem;
+    font-weight: 900;
+  }
+
+  .db-main {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: clamp(16px, 3vw, 28px);
+  }
+
+  .db-notification-banner {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 16px;
+    padding: 14px 16px;
+    border: 1px solid rgba(20,157,128,.22);
+    border-radius: 18px;
+    background: #ecfdf7;
+    color: var(--db-teal-dark);
+    box-shadow: 0 6px 18px rgba(20,157,128,.06);
+  }
+
+  .db-notification-banner strong {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .9rem;
+    line-height: 1.25;
+  }
+
+  .db-notification-banner p {
+    margin: 5px 0 0;
+    color: #315d53;
+    font-size: .82rem;
+    line-height: 1.42;
+  }
+
+  .db-icon-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,.74);
+    color: var(--db-teal-dark);
+    cursor: pointer;
+    transition: background .2s ease, transform .2s ease;
+  }
+
+  .db-icon-close:hover {
+    background: #fff;
+    transform: translateY(-1px);
+  }
+
+  .db-page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .db-page-kicker {
+    margin: 0 0 5px;
+    color: var(--db-teal);
+    font-size: .72rem;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .db-page-header h1 {
+    margin: 0;
+    color: var(--db-ink);
+    font-size: clamp(1.35rem, 5vw, 1.8rem);
+    font-weight: 900;
+    line-height: 1.12;
+  }
+
+  .db-page-header p {
+    margin: 6px 0 0;
+    color: var(--db-muted);
+    font-size: .88rem;
+    line-height: 1.45;
+  }
+
+  .db-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .db-toolbar-left,
+  .db-toolbar-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .db-status-badge,
+  .db-autorefresh {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 36px;
+    padding: 7px 11px;
+    border: 1px solid rgba(231,231,239,.9);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--db-muted);
+    font-size: .78rem;
+    font-weight: 800;
+    box-shadow: 0 8px 22px rgba(24, 33, 49, .05);
+  }
+
+  .db-status-badge {
+    border-color: rgba(20,157,128,.18);
+    background: var(--db-teal-soft);
+    color: var(--db-teal-dark);
+  }
+
+  .db-online-dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 8px;
+    border-radius: 50%;
+    background: var(--db-teal);
+    box-shadow: 0 0 0 0 rgba(20,157,128,.48);
+    animation: dbPulse 1.8s infinite;
+  }
+
+  @keyframes dbPulse {
+    70% { box-shadow: 0 0 0 9px rgba(20,157,128,0); }
+    100% { box-shadow: 0 0 0 0 rgba(20,157,128,0); }
+  }
+
+  .db-period-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid rgba(231,231,239,.9);
+    border-radius: 999px;
+    background: rgba(255,255,255,.74);
+  }
+
+  .db-period-tabs button {
+    min-height: 30px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--db-muted);
+    cursor: pointer;
+    font: inherit;
+    font-size: .78rem;
+    font-weight: 900;
+    transition: color .2s ease, background .2s ease, box-shadow .2s ease;
+  }
+
+  .db-period-tabs button.active {
+    background: #fff;
+    color: var(--db-teal-dark);
+    box-shadow: 0 8px 18px rgba(24, 33, 49, .08);
+  }
+
+  .db-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 0 13px;
+    border: 0;
+    border-radius: 14px;
+    cursor: pointer;
+    font: inherit;
+    font-size: .82rem;
+    font-weight: 900;
+    transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+  }
+
+  .db-btn-ghost {
+    border: 1px solid rgba(231,231,239,.92);
+    background: #fff;
+    color: var(--db-teal-dark);
+    box-shadow: 0 8px 22px rgba(24, 33, 49, .05);
+  }
+
+  .db-btn-ghost:hover,
+  .db-action-btn:hover,
+  .db-pred-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .db-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .db-stat-card,
+  .db-card,
+  .db-pred-card,
+  .db-action-btn {
+    border: 1px solid rgba(231,231,239,.92);
+    background: rgba(255,255,255,.94);
+    box-shadow: var(--db-shadow);
+  }
+
+  .db-stat-card {
+    position: relative;
+    overflow: hidden;
+    min-height: 122px;
+    padding: 16px 18px;
+    border-radius: 18px;
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+
+  .db-stat-card:hover,
+  .db-pred-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px rgba(24, 33, 49, .08);
+  }
+
+  .db-stat-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .db-stat-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    border-radius: 12px;
+    background: var(--db-teal-soft);
+    color: var(--db-teal);
+  }
+
+  .db-stat-label {
+    margin: 0;
+    color: var(--db-muted);
+    font-size: .74rem;
+    font-weight: 900;
+    line-height: 1.25;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  .db-stat-value {
+    margin: 0 0 8px;
+    color: var(--db-ink);
+    font-size: clamp(1.35rem, 5vw, 1.7rem);
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .db-stat-delta,
+  .db-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    width: fit-content;
+    max-width: 100%;
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 900;
+    line-height: 1.2;
+  }
+
+  .db-delta-up,
+  .db-badge-green { background: var(--db-teal-soft); color: var(--db-teal-dark); }
+  .db-delta-down { background: #fff1f2; color: #b42335; }
+  .db-delta-neu,
+  .db-badge-blue { background: var(--db-blue-soft); color: #286b9d; }
+
+  .db-stat-sub {
+    margin-top: 8px;
+    color: var(--db-muted);
+    font-size: .78rem;
+    line-height: 1.35;
+  }
+
+  .db-stat-forecast {
+    margin-top: 7px;
+    color: var(--db-teal-dark);
+    font-size: .76rem;
+    font-weight: 800;
+    line-height: 1.35;
+  }
+
+  .db-two-col {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+    gap: 16px;
+    align-items: start;
+    margin-bottom: 20px;
+  }
+
+  .db-card {
+    padding: 18px 20px;
+    border-radius: 18px;
+    margin-bottom: 16px;
+    transition: box-shadow .2s ease, border-color .2s ease;
+  }
+
+  .db-two-col > .db-card {
+    margin-bottom: 0;
+    height: 100%;
+  }
+
+  .db-card:hover {
+    border-color: rgba(214, 218, 228, .95);
+    box-shadow: 0 10px 26px rgba(24, 33, 49, .07);
+  }
+
+  .db-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .db-card-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--db-ink);
+    font-size: .98rem;
+    font-weight: 800;
+    line-height: 1.25;
+  }
+
+  .db-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    border-radius: 10px;
+    background: #f3f7f6;
+    color: var(--db-teal);
+  }
+
+  .db-card-link {
+    color: var(--db-teal-dark);
+    text-decoration: none;
+    font-size: .8rem;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .db-analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    overflow: hidden;
+    border: 1px solid var(--db-line);
+    border-radius: 12px;
+    background: #f8f8fb;
+  }
+
+  .db-analytics-item {
+    padding: 12px 10px;
+    border-right: 1px solid var(--db-line);
+    text-align: center;
+  }
+
+  .db-analytics-item:last-child { border-right: 0; }
+
+  .db-analytics-val {
+    color: var(--db-ink);
+    font-size: 1.2rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .db-analytics-label {
+    margin-top: 6px;
+    color: var(--db-muted);
+    font-size: .72rem;
+    line-height: 1.25;
+  }
+
+  .db-chart-area {
+    display: flex;
+    align-items: flex-end;
+    gap: 5px;
+    height: 132px;
+    margin-top: 14px;
+    padding: 10px;
+    overflow: hidden;
+    border: 1px solid var(--db-line);
+    border-radius: 12px;
+    background: #fbfcfd;
+  }
+
+  .db-bar {
+    flex: 1;
+    min-width: 3px;
+    border-radius: 999px 999px 2px 2px;
+    background: linear-gradient(180deg, var(--db-blue), var(--db-teal));
+    opacity: .76;
+    transition: opacity .2s ease, transform .2s ease;
+  }
+
+  .db-bar:hover {
+    opacity: 1;
+    transform: scaleY(1.02);
+  }
+
+  .db-chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 10px;
+  }
+
+  .db-legend-item,
+  .db-waste-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--db-muted);
+    font-size: .76rem;
+  }
+
+  .db-legend-dot,
+  .db-waste-dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 8px;
+    border-radius: 50%;
+  }
+
+  .db-donut-wrap {
+    display: grid;
+    justify-items: center;
+    gap: 14px;
+  }
+
+  .db-donut {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 104px;
+    height: 104px;
+    border-radius: 50%;
+  }
+
+  .db-donut-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px rgba(231,231,239,.9);
+  }
+
+  .db-donut-pct {
+    color: var(--db-ink);
+    font-size: 1.08rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .db-donut-sub {
+    max-width: 58px;
+    margin-top: 4px;
+    overflow: hidden;
+    color: var(--db-muted);
+    font-size: .62rem;
+    line-height: 1.15;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .db-waste-types {
+    width: 100%;
+  }
+
+  .db-waste-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 7px;
+  }
+
+  .db-waste-label span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .db-waste-bar-wrap,
+  .db-pred-conf-bar {
+    overflow: hidden;
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: #eef0f5;
+  }
+
+  .db-waste-bar-fill,
+  .db-pred-conf-fill {
+    height: 100%;
+    border-radius: 999px;
+  }
+
+  .db-waste-pct {
+    color: var(--db-ink);
+    font-size: .76rem;
+    font-weight: 900;
+  }
+
+  .db-predictions-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .db-pred-card {
+    padding: 14px;
+    border-radius: 16px;
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+
+  .db-pred-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .db-pred-id {
+    overflow-wrap: anywhere;
+    color: var(--db-ink);
+    font-size: .92rem;
+    font-weight: 900;
+    line-height: 1.25;
+  }
+
+  .db-pred-meta {
+    margin-top: 3px;
+    overflow-wrap: anywhere;
+    color: var(--db-muted);
+    font-size: .74rem;
+    line-height: 1.35;
+  }
+
+  .db-pred-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+    font-size: .78rem;
+    line-height: 1.35;
+  }
+
+  .db-pred-row-label {
+    flex: 0 0 auto;
+    color: var(--db-muted);
+  }
+
+  .db-pred-row-val {
+    color: var(--db-ink);
+    font-weight: 800;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  .db-pred-note {
+    display: flex;
+    gap: 6px;
+    margin: 8px 0;
+    color: #9a650b;
+    font-size: .72rem;
+    line-height: 1.35;
+  }
+
+  .db-pred-confidence {
+    margin-top: 10px;
+  }
+
+  .db-pred-conf-fill {
+    background: linear-gradient(90deg, var(--db-blue), var(--db-teal));
+  }
+
+  .db-pred-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    width: 100%;
+    min-height: 38px;
+    margin-top: 12px;
+    border: 1px solid rgba(20,157,128,.28);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--db-teal-dark);
+    cursor: pointer;
+    font: inherit;
+    font-size: .8rem;
+    font-weight: 900;
+    text-decoration: none;
+    transition: transform .2s ease, background .2s ease, color .2s ease;
+  }
+
+  .db-pred-btn:hover {
+    background: var(--db-teal);
+    color: #fff;
+  }
+
+  .db-attention-empty {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    padding: 22px 18px;
+    color: var(--db-muted);
+    text-align: center;
+    font-size: .85rem;
+  }
+
+  .db-attention-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--db-teal-soft);
+    color: var(--db-teal);
+  }
+
+  .db-alert-list,
+  .db-notification-list,
+  .db-settings-list {
+    display: grid;
+    gap: 10px;
+  }
+
+  .db-alert-item,
+  .db-notification-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 16px;
+    border: 1px solid var(--db-line);
+    background: #fff;
+  }
+
+  .db-alert-item.critical {
+    border-color: rgba(224,93,99,.22);
+    background: #fff1f2;
+    color: #991b1b;
+  }
+
+  .db-alert-item.warning {
+    border-color: rgba(244,166,42,.24);
+    background: #fff8e8;
+    color: #8a5a0a;
+  }
+
+  .db-alert-title,
+  .db-notification-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: .84rem;
+    font-weight: 900;
+    line-height: 1.3;
+  }
+
+  .db-alert-message,
+  .db-notification-message {
+    margin-top: 4px;
+    color: #667085;
+    font-size: .75rem;
+    line-height: 1.35;
+  }
+
+  .db-alert-time {
+    margin-top: 5px;
+    color: rgba(16,19,24,.52);
+    font-size: .68rem;
+  }
+
+  .db-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .db-action-link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .db-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 86px;
+    padding: 10px 8px;
+    border-radius: 14px;
+    color: var(--db-ink);
+    text-align: center;
+    transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+  }
+
+  .db-action-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    background: #f3f7f6;
+    color: var(--db-teal);
+  }
+
+  .db-action-label {
+    font-size: .76rem;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+
+  .db-settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(231,231,239,.72);
+  }
+
+  .db-settings-row:last-child {
+    border-bottom: 0;
+  }
+
+  .db-settings-name {
+    color: var(--db-ink);
+    font-size: .84rem;
+    font-weight: 900;
+    line-height: 1.3;
+  }
+
+  .db-settings-sub {
+    margin-top: 3px;
+    color: var(--db-muted);
+    font-size: .74rem;
+  }
+
+  .db-toggle {
+    position: relative;
+    width: 42px;
+    height: 24px;
+    flex: 0 0 42px;
+    border: 0;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background .2s ease;
+  }
+
+  .db-toggle.on { background: var(--db-teal); }
+  .db-toggle.off { background: #d8dbe3; }
+
+  .db-toggle::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(24,33,49,.18);
+    transition: transform .2s ease;
+  }
+
+  .db-toggle.on::after {
+    transform: translateX(18px);
+  }
+
+  .db-notifications-title {
+    margin: 16px 0 9px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(231,231,239,.82);
+    color: var(--db-muted);
+    font-size: .74rem;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .db-skeleton {
+    border-radius: 14px;
+    background: linear-gradient(90deg, #f4f5f8 25%, #e9ebf1 50%, #f4f5f8 75%);
+    background-size: 200% 100%;
+    animation: dbShimmer 1.4s infinite;
+  }
+
+  @keyframes dbShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  @media(max-width: 1100px) {
+    .db-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .db-two-col { grid-template-columns: 1fr; }
+    .db-predictions-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .db-actions-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  @media(max-width: 640px) {
+    .db-topbar { padding: 10px 14px; }
+    .db-brand { font-size: 1rem; }
+    .db-main { padding: 14px; }
+    .db-page-header,
+    .db-toolbar,
+    .db-toolbar-left,
+    .db-toolbar-actions {
+      align-items: stretch;
+      flex-direction: column;
+    }
+    .db-period-tabs,
+    .db-toolbar-actions,
+    .db-btn {
+      width: 100%;
+    }
+    .db-period-tabs button { flex: 1; }
+    .db-stats-grid,
+    .db-predictions-grid {
+      grid-template-columns: 1fr;
+    }
+    .db-analytics-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .db-analytics-item {
+      border-right: 0;
+      border-bottom: 1px solid var(--db-line);
+    }
+    .db-analytics-item:nth-child(odd) { border-right: 1px solid var(--db-line); }
+    .db-analytics-item:nth-child(n+3) { border-bottom: 0; }
+    .db-actions-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .db-card,
+    .db-stat-card {
+      border-radius: 16px;
+      padding: 14px;
+    }
+    .db-chart-area { height: 118px; padding: 10px; gap: 3px; }
+    .db-card-header {
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
   }
 `;
 
-// ── Sub-components ────────────────────────────────────────────
+function statIconFor(title) {
+  if (title.includes("Total")) return Boxes;
+  if (title.includes("Average")) return Gauge;
+  if (title.includes("Attention")) return CircleAlert;
+  return Activity;
+}
+
 function StatCard({ title, value, delta, deltaType = "neu", subtitle, forecast, loading }) {
+  const Icon = statIconFor(title);
+  const DeltaIcon = deltaType === "down" ? CircleAlert : deltaType === "up" ? ChartColumn : Clock;
+
   return (
     <div className="db-stat-card">
-      <div className="db-stat-label">{title}</div>
-      {loading
-        ? <div className="db-skeleton" style={{ height: 40, marginBottom: 8 }} />
-        : <div className="db-stat-value">{value}</div>
-      }
+      <div className="db-stat-head">
+        <div>
+          <p className="db-stat-label">{title}</p>
+        </div>
+        <span className="db-stat-icon">
+          <Icon size={21} strokeWidth={2.25} aria-hidden="true" />
+        </span>
+      </div>
+      {loading ? (
+        <div className="db-skeleton" style={{ height: 32, marginBottom: 10 }} />
+      ) : (
+        <div className="db-stat-value">{value}</div>
+      )}
       <span className={`db-stat-delta db-delta-${deltaType}`}>
-        {deltaType === "up" ? "▲" : deltaType === "down" ? "▼" : "●"} {delta}
+        <DeltaIcon size={13} strokeWidth={2.5} aria-hidden="true" />
+        {delta}
       </span>
       <div className="db-stat-sub">{subtitle}</div>
-      {forecast && <div className="db-stat-forecast">🔮 {forecast}</div>}
+      {forecast && <div className="db-stat-forecast">{forecast}</div>}
     </div>
   );
 }
 
-function PredCard({ bin, pred }) {
+function PredCard({ bin, pred, scheduleTo }) {
   const binId = bin.qrCode || bin._id;
-  const formatTs = (ts) => ts ? new Date(ts * 1000).toLocaleString() : "—";
+  const formatTs = (ts) => ts ? new Date(ts * 1000).toLocaleString() : "-";
   return (
     <div className="db-pred-card">
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
+      <div className="db-pred-head">
         <div>
           <div className="db-pred-id">{binId}</div>
-          <div className="db-pred-meta">{bin.locationName || "—"} • {bin.wasteType || "—"}</div>
+          <div className="db-pred-meta">{bin.locationName || "-"} / {bin.wasteType || "-"}</div>
         </div>
-        <span className="db-badge db-badge-green">Live</span>
+        <span className="db-badge db-badge-green">
+          <Activity size={12} strokeWidth={2.5} aria-hidden="true" />
+          Live
+        </span>
       </div>
       <div className="db-pred-row">
-        <span className="db-pred-row-label">Full at:</span>
+        <span className="db-pred-row-label">Full at</span>
         <span className="db-pred-row-val">{formatTs(pred?.target_timestamp)}</span>
       </div>
       <div className="db-pred-row">
-        <span className="db-pred-row-label">Hours until full:</span>
-        <span className="db-pred-row-val">{pred?.hours_until_full ?? "—"}{pred?.hours_until_full != null ? "h" : ""}</span>
+        <span className="db-pred-row-label">Hours until full</span>
+        <span className="db-pred-row-val">{pred?.hours_until_full ?? "-"}{pred?.hours_until_full != null ? "h" : ""}</span>
       </div>
       {pred?.note && (
-        <div style={{ fontSize:"0.7rem", color:"#F59E0B", marginTop:4 }}>⚠ {pred.note}</div>
+        <div className="db-pred-note">
+          <CircleAlert size={14} strokeWidth={2.4} aria-hidden="true" />
+          {pred.note}
+        </div>
       )}
       <div className="db-pred-confidence">
         <div className="db-pred-row">
-          <span className="db-pred-row-label">Confidence:</span>
-          <span className="db-pred-row-val" style={{ color:"#1A6EFF" }}>{pred?.confidence ?? "—"}{pred?.confidence != null ? "%" : ""}</span>
+          <span className="db-pred-row-label">Confidence</span>
+          <span className="db-pred-row-val" style={{ color: "#0d8069" }}>{pred?.confidence ?? "-"}{pred?.confidence != null ? "%" : ""}</span>
         </div>
         <div className="db-pred-conf-bar">
-          <div className="db-pred-conf-fill" style={{ width:`${pred?.confidence ?? 0}%` }} />
+          <div className="db-pred-conf-fill" style={{ width: `${pred?.confidence ?? 0}%` }} />
         </div>
       </div>
-      <button className="db-pred-btn">Schedule Pickup</button>
+      <Link
+        className="db-pred-btn"
+        to={scheduleTo}
+        state={{ containerId: binId }}
+        title="Open dispatch to assign this pickup"
+      >
+        <Truck size={16} strokeWidth={2.35} aria-hidden="true" />
+        Schedule Pickup
+      </Link>
     </div>
   );
 }
 
 function Toggle({ on, onToggle }) {
-  return <button className={`db-toggle ${on ? "on" : "off"}`} onClick={onToggle} />;
+  return (
+    <button
+      className={`db-toggle ${on ? "on" : "off"}`}
+      onClick={onToggle}
+      type="button"
+      aria-pressed={on}
+    />
+  );
 }
 
-// ── Main ──────────────────────────────────────────────────────
+function CardTitle({ icon: Icon, children }) {
+  return (
+    <span className="db-card-title">
+      <span className="db-title-icon">
+        <Icon size={18} strokeWidth={2.3} aria-hidden="true" />
+      </span>
+      {children}
+    </span>
+  );
+}
+
 function Dashboard() {
   const navigate = useNavigate();
 
-  // ── Auth ──────────────────────────────────────────────────
   const username = sessionStorage.getItem("mw_name") || sessionStorage.getItem("mw_user") || "User";
-  const role     = sessionStorage.getItem("mw_role") || "personnel";
+  const role = sessionStorage.getItem("mw_role") || "personnel";
 
   useEffect(() => {
     if (sessionStorage.getItem("mw_logged_in") !== "true") navigate("/");
   }, [navigate]);
 
-  // ── State ─────────────────────────────────────────────────
-  const [bins,          setBins]          = useState([]);
-  const [predictions,   setPredictions]   = useState({});
-  const [alerts,        setAlerts]        = useState([]);
+  const [bins, setBins] = useState([]);
+  const [predictions, setPredictions] = useState({});
+  const [alerts, setAlerts] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  const [notifBanner,   setNotifBanner]   = useState(null);
-  const [period,        setPeriod]        = useState("Month");
-  const [loading,       setLoading]       = useState(true);
-  const [settings,      setSettings]      = useState({
+  const [notifBanner, setNotifBanner] = useState(null);
+  const [period, setPeriod] = useState("Month");
+  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState({
     autoRefresh: true, aiPredictions: true, analytics: true, compact: false,
   });
 
-  // ── Derived stats from REAL bin data ──────────────────────
-  const totalBins   = bins.length;
+  const totalBins = bins.length;
   const avgFullness = bins.length
     ? Math.round(bins.reduce((s, b) => s + (Number(b.fullness) || 0), 0) / bins.length)
     : 0;
-  const critical    = bins.filter(b => (Number(b.fullness) || 0) >= 80).length;
+  const critical = bins.filter(b => (Number(b.fullness) || 0) >= 80).length;
   const predictionValues = Object.values(predictions).filter((p) => p?.confidence != null);
-  const avgConf     = predictionValues.length
+  const avgConf = predictionValues.length
     ? Math.round(predictionValues.reduce((s, p) => s + (Number(p.confidence) || 0), 0) / predictionValues.length)
     : 0;
   const wasteTypes = Object.values(bins.reduce((acc, bin) => {
@@ -379,14 +1173,11 @@ function Dashboard() {
     pct: totalBins ? Math.round((entry.count / totalBins) * 100) : 0,
   }));
 
-  // ── Fetch all data ─────────────────────────────────────────
   const fetchAll = async () => {
     try {
-      // 1. Bins from MongoDB telemetry
       const binsRes = await getBins({ period: period.toLowerCase() });
       setBins(binsRes.data);
 
-      // 2. AI predictions for each bin
       const binIds = binsRes.data.map(b => b._id);
       const predResults = await Promise.all(
         binIds.map(id => getPredict(id).then(r => ({ id, data: r.data })).catch(() => ({ id, data: null })))
@@ -395,10 +1186,8 @@ function Dashboard() {
       predResults.forEach(({ id, data }) => { if (data) predMap[id] = data; });
       setPredictions(predMap);
 
-      // 3. Alerts
       const alertsRes = await getAlerts();
       setAlerts(alertsRes.data.filter(a => !a.resolved));
-
     } catch (err) {
       console.error("Dashboard fetch error:", err);
     } finally {
@@ -420,50 +1209,46 @@ function Dashboard() {
   useEffect(() => {
     fetchAll();
     fetchNotifications();
-    const dataInterval  = setInterval(fetchAll, 10000);
+    const dataInterval = setInterval(fetchAll, 10000);
     const notifInterval = setInterval(fetchNotifications, 30000);
     return () => {
       clearInterval(dataInterval);
       clearInterval(notifInterval);
-     };
+    };
   }, [period]);
 
   useSocket({
-  // New telemetry reading → update bin in state without full refetch
-  'telemetry:update': ({ binId, fullness }) => {
-    setBins(prev => {
-      const exists = prev.find(b => b._id === binId);
-      if (exists) return prev.map(b => b._id === binId ? { ...b, fullness } : b);
-      fetchAll();
-      return prev;
-    });
-  },
- 
-  // New alert → add to alerts list
-  'alert:new': (alert) => {
-    setAlerts(prev => [alert, ...prev]);
-  },
- 
-  // New notification → show banner
-  'notification:new': (notif) => {
-    setNotifications(prev => [notif, ...prev]);
-    setNotifBanner(notif);
-  },
-});
- 
-  // ── Actions ───────────────────────────────────────────────
+    "telemetry:update": ({ binId, fullness }) => {
+      setBins(prev => {
+        const exists = prev.find(b => b._id === binId);
+        if (exists) return prev.map(b => b._id === binId ? { ...b, fullness } : b);
+        fetchAll();
+        return prev;
+      });
+    },
+    "alert:new": (alert) => {
+      setAlerts(prev => [alert, ...prev]);
+    },
+    "notification:new": (notif) => {
+      setNotifications(prev => [notif, ...prev]);
+      setNotifBanner(notif);
+    },
+  });
+
   const handleMarkRead = async (id) => {
     try {
       await markRead(id);
       setNotifications(prev => prev.filter(n => n._id !== id));
       if (notifBanner?._id === id) setNotifBanner(null);
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const toggleSetting = (key) => setSettings(s => ({ ...s, [key]: !s[key] }));
 
   const barHeights = bins.map(b => Number(b.fullness) || 0);
-  const wasteTypeColors = ["#1A6EFF", "#00D68F", "#F59E0B", "#8B5CF6"];
+  const wasteTypeColors = ["#149d80", "#4f96ce", "#f4a62a", "#8b7bd8"];
   const wasteDonutBackground = wasteTypes.length
     ? `conic-gradient(${wasteTypes.reduce((parts, waste, index) => {
         const start = wasteTypes.slice(0, index).reduce((sum, item) => sum + item.pct, 0) * 3.6;
@@ -471,111 +1256,144 @@ function Dashboard() {
         parts.push(`${wasteTypeColors[index % wasteTypeColors.length]} ${start}deg ${end}deg`);
         return parts;
       }, []).join(", ")})`
-    : "conic-gradient(#e4e9f0 0deg 360deg)";
-  const primaryWaste = wasteTypes[0] || { name: "—", pct: 0 };
+    : "conic-gradient(#e7e7ef 0deg 360deg)";
+  const primaryWaste = wasteTypes[0] || { name: "-", pct: 0 };
+  const schedulePickupPath = role === "admin" ? "/dashboard/admin/dispatch" : "/dashboard/alerts";
+
+  const quickActions = [
+    { icon: Boxes, label: "Bins", link: "/dashboard/containers" },
+    { icon: MapPin, label: "Map", link: "/dashboard/map" },
+    { icon: CircleAlert, label: "Alerts", link: "/dashboard/alerts" },
+    { icon: ChartColumn, label: "Reports", link: "/dashboard/reports" },
+    { icon: Route, label: "Routes", link: "/dashboard/routes-history" },
+    { icon: User, label: "Profile", link: "/dashboard/profile" },
+    ...(role === "admin" ? [
+      { icon: Truck, label: "Dispatch", link: "/dashboard/admin/dispatch" },
+      { icon: ShieldCheck, label: "Approvals", link: "/dashboard/admin/drivers" },
+    ] : []),
+  ];
 
   return (
     <>
       <style>{css}</style>
       <div className="db-root">
-
-        {/* TOP BAR */}
         <div className="db-topbar">
-          <div className="db-brand">MedWaste</div>
+          <div className="db-brand">
+            <span className="db-brand-mark">
+              <Activity size={20} strokeWidth={2.5} aria-hidden="true" />
+            </span>
+            MEDWASTE
+          </div>
           <div className="db-nav-right">
             <div className="db-user-pill">
               <div className="db-avatar">{username.charAt(0).toUpperCase()}</div>
               <span>{username}</span>
-              <span style={{ fontSize:"0.7rem", background:"#f0f4f8", padding:"2px 7px", borderRadius:999, color:"#5e6a85", marginLeft:4 }}>
-                {role}
-              </span>
+              <span className="db-role-badge">{role}</span>
             </div>
           </div>
         </div>
 
         <div className="db-main">
-
-          {/* Notification banner */}
           {notifBanner && (
-            <div style={{ background:"#ecfdf5", border:"1px solid #10b981", padding:"14px 18px",
-              borderRadius:12, marginBottom:20, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <div className="db-notification-banner">
               <div>
-                <strong style={{ color:"#065f46" }}>
-                  {notifBanner.type === "success" ? "✅" : "ℹ️"} {notifBanner.title}
+                <strong>
+                  {notifBanner.type === "success" ? (
+                    <CircleCheck size={18} strokeWidth={2.4} aria-hidden="true" />
+                  ) : (
+                    <Bell size={18} strokeWidth={2.4} aria-hidden="true" />
+                  )}
+                  {notifBanner.title}
                 </strong>
-                <p style={{ color:"#065f46", margin:"4px 0 0", fontSize:"0.88rem" }}>{notifBanner.message}</p>
+                <p>{notifBanner.message}</p>
               </div>
-              <button onClick={() => handleMarkRead(notifBanner._id)}
-                style={{ background:"transparent", border:"none", cursor:"pointer", fontSize:"1.2rem" }}>✕</button>
+              <button
+                className="db-icon-close"
+                onClick={() => handleMarkRead(notifBanner._id)}
+                type="button"
+                aria-label="Dismiss notification"
+              >
+                x
+              </button>
             </div>
           )}
 
-          {/* Page header */}
           <div className="db-page-header">
-            <h1>Monitoring Dashboard</h1>
-            <p>Medical waste management with AI analytics</p>
+            <div>
+              <p className="db-page-kicker">Operations</p>
+              <h1>Monitoring Dashboard</h1>
+              <p>Medical waste management with AI analytics</p>
+            </div>
+            <span className="db-status-badge">
+              <span className="db-online-dot" />
+              Online
+            </span>
           </div>
 
-          {/* Toolbar */}
           <div className="db-toolbar">
             <div className="db-toolbar-left">
-              <div className="db-status-badge"><span className="db-online-dot" /> Online</div>
-              <div className="db-autorefresh">🔄 Auto-refresh 10s</div>
+              <div className="db-autorefresh">
+                <RefreshCw size={15} strokeWidth={2.4} aria-hidden="true" />
+                Auto-refresh 10s
+              </div>
               <div className="db-period-tabs">
-                {["Day","Week","Month","Year"].map(p => (
-                  <button key={p} className={period === p ? "active" : ""} onClick={() => setPeriod(p)}>{p}</button>
+                {["Day", "Week", "Month", "Year"].map(p => (
+                  <button key={p} className={period === p ? "active" : ""} onClick={() => setPeriod(p)} type="button">{p}</button>
                 ))}
               </div>
             </div>
-            <div style={{ display:"flex", gap:8 }}>
-              <button className="db-btn db-btn-ghost" onClick={fetchAll}>🔄 Refresh</button>
+            <div className="db-toolbar-actions">
+              <button className="db-btn db-btn-ghost" onClick={fetchAll} type="button">
+                <RefreshCw size={16} strokeWidth={2.4} aria-hidden="true" />
+                Refresh
+              </button>
             </div>
           </div>
 
-          {/* STAT CARDS — real data */}
           <div className="db-stats-grid">
-            <StatCard loading={loading} title="Total Bins"       value={totalBins}       delta="live"  deltaType="neu" subtitle="Active in system" />
+            <StatCard loading={loading} title="Total Bins" value={totalBins} delta="live" deltaType="neu" subtitle="Active in system" />
             <StatCard loading={loading} title="Average Fullness" value={`${avgFullness}%`} delta="live" deltaType={avgFullness > 70 ? "up" : "neu"} subtitle="Current average" />
-            <StatCard loading={loading} title="Needs Attention"  value={critical}        delta={critical > 0 ? "!" : "ok"} deltaType={critical > 0 ? "down" : "neu"}
-              subtitle="Bins ≥ 80% full" forecast={critical > 0 ? `${critical} bin(s) need pickup` : "All bins normal"} />
-            <StatCard loading={loading} title="AI Confidence"    value={`${avgConf}%`}   delta="live"  deltaType="up" subtitle="Avg prediction accuracy" />
+            <StatCard loading={loading} title="Needs Attention" value={critical} delta={critical > 0 ? "Action" : "OK"} deltaType={critical > 0 ? "down" : "neu"} subtitle="Bins >= 80% full" forecast={critical > 0 ? `${critical} bin(s) need pickup` : "All bins normal"} />
+            <StatCard loading={loading} title="AI Confidence" value={`${avgConf}%`} delta="live" deltaType="up" subtitle="Avg prediction accuracy" />
           </div>
 
-          {/* ANALYTICS + WASTE TYPES */}
           <div className="db-two-col">
             <div className="db-card">
               <div className="db-card-header">
-                <span className="db-card-title">Fullness Overview</span>
-                <Link to="/dashboard/containers" className="db-card-link">All containers →</Link>
+                <CardTitle icon={Gauge}>Fullness Overview</CardTitle>
+                <Link to="/dashboard/containers" className="db-card-link">All containers</Link>
               </div>
               <div className="db-analytics-grid">
                 {[
-                  { val: totalBins,        label: "Total bins"     },
-                  { val: `${avgFullness}%`, label: "Avg fullness"  },
-                  { val: critical,          label: "Critical (≥80%)"},
-                  { val: `${avgConf}%`,     label: "AI confidence" },
+                  { val: totalBins, label: "Total bins" },
+                  { val: `${avgFullness}%`, label: "Avg fullness" },
+                  { val: critical, label: "Critical (>=80%)" },
+                  { val: `${avgConf}%`, label: "AI confidence" },
                 ].map(m => (
                   <div className="db-analytics-item" key={m.label}>
-                    <div className="db-analytics-val">{loading ? "—" : m.val}</div>
+                    <div className="db-analytics-val">{loading ? "-" : m.val}</div>
                     <div className="db-analytics-label">{m.label}</div>
                   </div>
                 ))}
               </div>
-              {/* Bar chart — real bin fullness */}
               <div className="db-chart-area">
                 {barHeights.map((h, i) => (
-                  <div key={i} className="db-bar" style={{ height:`${Math.max(h, 4)}%` }}
-                    title={bins[i] ? `${bins[i]._id}: ${bins[i].fullness}%` : `${h}%`} />
+                  <div
+                    key={i}
+                    className="db-bar"
+                    style={{ height: `${Math.max(h, 4)}%` }}
+                    title={bins[i] ? `${bins[i]._id}: ${bins[i].fullness}%` : `${h}%`}
+                  />
                 ))}
               </div>
               <div className="db-chart-legend">
-                <div className="db-legend-item"><div className="db-legend-dot" style={{ background:"#1A6EFF" }} /> Fullness %</div>
+                <div className="db-legend-item"><div className="db-legend-dot" style={{ background: "#149d80" }} /> Fullness %</div>
               </div>
             </div>
 
             <div className="db-card">
               <div className="db-card-header">
-                <span className="db-card-title">Waste Types</span>
+                <CardTitle icon={PackageCheck}>Waste Types</CardTitle>
               </div>
               <div className="db-donut-wrap">
                 <div className="db-donut" style={{ background: wasteDonutBackground }}>
@@ -586,79 +1404,85 @@ function Dashboard() {
                 </div>
                 <div className="db-waste-types">
                   {wasteTypes.length === 0 ? (
-                    <div style={{ fontSize:"0.78rem", color:"#5e6a85" }}>No waste type data</div>
+                    <div style={{ fontSize: "0.78rem", color: "#7d8490" }}>No waste type data</div>
                   ) : wasteTypes.map((waste, index) => (
                     <div key={waste.name}>
                       <div className="db-waste-row">
                         <div className="db-waste-label">
-                          <div className="db-waste-dot" style={{ background:wasteTypeColors[index % wasteTypeColors.length] }} />
-                          <span style={{ fontSize:"0.78rem" }}>{waste.name}</span>
+                          <div className="db-waste-dot" style={{ background: wasteTypeColors[index % wasteTypeColors.length] }} />
+                          <span>{waste.name}</span>
                         </div>
                         <span className="db-waste-pct">{waste.pct}%</span>
                       </div>
                       <div className="db-waste-bar-wrap">
-                        <div className="db-waste-bar-fill" style={{ width:`${waste.pct}%`, background:wasteTypeColors[index % wasteTypeColors.length] }} />
+                        <div className="db-waste-bar-fill" style={{ width: `${waste.pct}%`, background: wasteTypeColors[index % wasteTypeColors.length] }} />
                       </div>
                     </div>
                   ))}
-                  <div style={{ fontSize:"0.72rem", color:"#5e6a85", marginTop:4 }}>
-                    {totalBins} bins · {avgFullness}% avg filled
+                  <div style={{ fontSize: "0.72rem", color: "#7d8490", marginTop: 8 }}>
+                    {totalBins} bins / {avgFullness}% avg filled
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* AI PREDICTIONS — real data */}
           <div className="db-card">
             <div className="db-card-header db-predictions-header">
               <div className="db-predictions-title-row">
-                <span className="db-card-title">AI Maintenance Predictions</span>
-                <span className="db-badge db-badge-green">✓ Live · {Object.keys(predictions).length} bins</span>
+                <CardTitle icon={Activity}>AI Maintenance Predictions</CardTitle>
+                <span className="db-badge db-badge-green">
+                  <CircleCheck size={12} strokeWidth={2.5} aria-hidden="true" />
+                  Live / {Object.keys(predictions).length} bins
+                </span>
               </div>
-              <Link to="/dashboard/containers" className="db-card-link">View all →</Link>
+              <Link to="/dashboard/containers" className="db-card-link">View all</Link>
             </div>
             {loading ? (
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14 }}>
-                {[1,2,3].map(i => <div key={i} className="db-skeleton" style={{ height:180 }} />)}
+              <div className="db-predictions-grid">
+                {[1, 2, 3].map(i => <div key={i} className="db-skeleton" style={{ height: 180 }} />)}
               </div>
             ) : bins.length === 0 ? (
-              <div style={{ textAlign:"center", padding:40, color:"#a0aec0" }}>
+              <div style={{ textAlign: "center", padding: 34, color: "#7d8490", fontSize: ".86rem" }}>
                 No bin data yet. Start the sensor to see predictions.
               </div>
             ) : (
               <div className="db-predictions-grid">
-                {bins.slice(0,6).map(bin => (
-                  <PredCard key={bin._id} bin={bin} pred={predictions[bin._id]} />
+                {bins.slice(0, 6).map(bin => (
+                  <PredCard
+                    key={bin._id}
+                    bin={bin}
+                    pred={predictions[bin._id]}
+                    scheduleTo={schedulePickupPath}
+                  />
                 ))}
               </div>
             )}
           </div>
 
-          {/* NEEDS ATTENTION */}
           <div className="db-card">
             <div className="db-card-header">
-              <span className="db-card-title">Needs Attention</span>
-              <Link to="/dashboard/alerts" className="db-card-link">View all →</Link>
+              <CardTitle icon={CircleAlert}>Needs Attention</CardTitle>
+              <Link to="/dashboard/alerts" className="db-card-link">View all</Link>
             </div>
             {alerts.length === 0 ? (
               <div className="db-attention-empty">
-                <div className="db-attention-icon">✅</div>
-                <p>All bins are normal — no attention needed</p>
+                <div className="db-attention-icon">
+                  <CircleCheck size={24} strokeWidth={2.4} aria-hidden="true" />
+                </div>
+                <p>All bins are normal. No attention needed.</p>
               </div>
             ) : (
-              <div style={{ maxHeight:280, overflowY:"auto", display:"flex", flexDirection:"column", gap:8 }}>
-                {alerts.slice(0,5).map(alert => (
-                  <div key={alert._id} style={{
-                    background: alert.severity === "critical" ? "#fff5f5" : "#fffbeb",
-                    borderLeft: `4px solid ${alert.severity === "critical" ? "#f87171" : "#fbbf24"}`,
-                    padding:"10px 14px", borderRadius:6,
-                    color: alert.severity === "critical" ? "#991b1b" : "#92400e",
-                  }}>
-                    <div style={{ fontWeight:700, fontSize:"0.85rem" }}>⚠️ {alert.title}</div>
-                    <div style={{ fontSize:"0.75rem", marginTop:3 }}>{alert.message}</div>
-                    <div style={{ fontSize:"0.65rem", opacity:.6, marginTop:4 }}>
-                      {new Date(alert.timestamp).toLocaleTimeString()}
+              <div className="db-alert-list" style={{ maxHeight: 280, overflowY: "auto" }}>
+                {alerts.slice(0, 5).map(alert => (
+                  <div key={alert._id} className={`db-alert-item ${alert.severity === "critical" ? "critical" : "warning"}`}>
+                    <div>
+                      <div className="db-alert-title">
+                        <CircleAlert size={17} strokeWidth={2.4} aria-hidden="true" />
+                        {alert.title}
+                      </div>
+                      <div className="db-alert-message">{alert.message}</div>
+                      <div className="db-alert-time">{new Date(alert.timestamp).toLocaleTimeString()}</div>
                     </div>
                   </div>
                 ))}
@@ -666,29 +1490,19 @@ function Dashboard() {
             )}
           </div>
 
-          {/* QUICK ACTIONS + SETTINGS */}
           <div className="db-two-col">
             <div className="db-card">
               <div className="db-card-header">
-                <span className="db-card-title">Quick Actions</span>
+                <CardTitle icon={LayoutDashboard}>Quick Actions</CardTitle>
               </div>
               <div className="db-actions-grid">
-                {[
-                  { icon:"🗑️", label:"Bins",         link:"/dashboard/containers" },
-                  { icon:"🗺️", label:"Map",          link:"/dashboard/map"        },
-                  { icon:"⚠️", label:"Alerts",       link:"/dashboard/alerts"     },
-                  { icon:"📊", label:"Reports",      link:"/dashboard/reports"    },
-                  { icon:"🛣️", label:"Routes",       link:"/dashboard/routes-history" },
-                  { icon:"👤", label:"Profile",      link:"/dashboard/profile"    },
-                  ...(role === "admin" ? [
-                    { icon:"🚛", label:"Dispatch",   link:"/dashboard/admin/dispatch" },
-                    { icon:"🛡️", label:"Approvals", link:"/dashboard/admin/drivers"  },
-                  ] : []),
-                ].map(a => (
-                  <Link to={a.link} key={a.label} style={{ textDecoration:"none" }}>
+                {quickActions.map(({ icon: Icon, label, link }) => (
+                  <Link to={link} key={label} className="db-action-link">
                     <div className="db-action-btn">
-                      <span className="db-action-icon">{a.icon}</span>
-                      <span className="db-action-label">{a.label}</span>
+                      <span className="db-action-icon">
+                        <Icon size={23} strokeWidth={2.25} aria-hidden="true" />
+                      </span>
+                      <span className="db-action-label">{label}</span>
                     </div>
                   </Link>
                 ))}
@@ -697,14 +1511,14 @@ function Dashboard() {
 
             <div className="db-card">
               <div className="db-card-header">
-                <span className="db-card-title">Dashboard Settings</span>
+                <CardTitle icon={Settings}>Dashboard Settings</CardTitle>
               </div>
               <div className="db-settings-list">
                 {[
-                  { key:"autoRefresh",   name:"Auto-refresh",   sub:"Every 10 sec"       },
-                  { key:"aiPredictions", name:"AI Predictions",  sub:"Machine learning"   },
-                  { key:"analytics",     name:"Analytics",       sub:"Advanced metrics"   },
-                  { key:"compact",       name:"Compact view",    sub:"Save space"         },
+                  { key: "autoRefresh", name: "Auto-refresh", sub: "Every 10 sec" },
+                  { key: "aiPredictions", name: "AI Predictions", sub: "Machine learning" },
+                  { key: "analytics", name: "Analytics", sub: "Advanced metrics" },
+                  { key: "compact", name: "Compact view", sub: "Save space" },
                 ].map(s => (
                   <div className="db-settings-row" key={s.key}>
                     <div>
@@ -716,34 +1530,31 @@ function Dashboard() {
                 ))}
               </div>
 
-              {/* Unread notifications */}
               {notifications.filter(n => !n.read).length > 0 && (
-                <div style={{ marginTop:16, borderTop:"1px solid #f0f4f8", paddingTop:14 }}>
-                  <div style={{ fontSize:"0.78rem", fontWeight:600, color:"#5e6a85", marginBottom:8 }}>
-                    NOTIFICATIONS
-                  </div>
-                  {notifications.filter(n => !n.read).map(n => (
-                    <div key={n._id} style={{
-                      background: n.type === "success" ? "#e6faf3" : "#fff0f1",
-                      border:`1px solid ${n.type === "success" ? "#00D68F" : "#e53e3e"}`,
-                      padding:"10px 12px", borderRadius:8, marginBottom:8,
-                      display:"flex", justifyContent:"space-between", alignItems:"flex-start",
-                    }}>
-                      <div>
-                        <div style={{ fontSize:"0.82rem", fontWeight:600, color: n.type === "success" ? "#00A870" : "#e53e3e" }}>
-                          {n.title}
+                <div>
+                  <div className="db-notifications-title">Notifications</div>
+                  <div className="db-notification-list">
+                    {notifications.filter(n => !n.read).map(n => (
+                      <div key={n._id} className="db-notification-item">
+                        <div>
+                          <div className="db-notification-title" style={{ color: n.type === "success" ? "#0d8069" : "#b42335" }}>
+                            {n.type === "success" ? (
+                              <CircleCheck size={16} strokeWidth={2.4} aria-hidden="true" />
+                            ) : (
+                              <Bell size={16} strokeWidth={2.4} aria-hidden="true" />
+                            )}
+                            {n.title}
+                          </div>
+                          <div className="db-notification-message">{n.message}</div>
                         </div>
-                        <div style={{ fontSize:"0.75rem", marginTop:2, color:"#5e6a85" }}>{n.message}</div>
+                        <button className="db-icon-close" onClick={() => handleMarkRead(n._id)} type="button" aria-label="Dismiss notification">x</button>
                       </div>
-                      <button onClick={() => handleMarkRead(n._id)}
-                        style={{ border:"none", background:"transparent", cursor:"pointer", fontSize:"1rem", flexShrink:0 }}>✕</button>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
           </div>
-
         </div>
       </div>
     </>
