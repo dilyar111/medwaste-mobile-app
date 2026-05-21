@@ -1,110 +1,696 @@
 import React, { useEffect, useState } from "react";
+import {
+  BadgeCheck,
+  Building2,
+  ChevronDown,
+  ChevronUp,
+  CircleCheck,
+  CircleX,
+  ClipboardCheck,
+  Contact,
+  Hash,
+  Loader2,
+  MapPin,
+  Phone,
+  Recycle,
+  RefreshCw,
+  ShieldCheck,
+  Truck,
+  UserCheck,
+} from "lucide-react";
 import { getPendingDrivers, updateDriverStatus } from "../services/api";
 import api from "../services/api";
 
 const css = `
-  
-  .ap-root { min-height:100vh; background:#f0f4f8; font-family:'Geist',sans-serif; color:#1a2035; padding:32px; }
-  .ap-header { margin-bottom:28px; }
-  .ap-header h1 { font-size:1.9rem; font-weight:800; letter-spacing:-.03em; margin-bottom:4px; }
-  .ap-header p  { color:#5e6a85; font-size:.9rem; }
+  .ap-root {
+    --ap-bg: #f4f3f8;
+    --ap-card: #ffffff;
+    --ap-ink: #101318;
+    --ap-muted: #7d8490;
+    --ap-line: #e7e7ef;
+    --ap-teal: #149d80;
+    --ap-teal-dark: #0d8069;
+    --ap-teal-soft: #e7f6f1;
+    --ap-blue: #4f96ce;
+    --ap-blue-soft: #e8f2fb;
+    --ap-red: #e6535d;
+    --ap-red-soft: #fff0f1;
+    --ap-amber: #f4a62a;
+    --ap-amber-soft: #fff8e8;
+    --ap-shadow: 0 8px 24px rgba(24, 33, 49, .06);
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding: 28px 32px;
+    background: var(--ap-bg);
+    color: var(--ap-ink);
+  }
 
-  .ap-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
-  .ap-stat  { background:#fff; border-radius:12px; border:1px solid #e4e9f0; padding:16px 20px; position:relative; overflow:hidden; }
-  .ap-stat::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
-  .ap-stat.pending::before  { background:#F59E0B; }
-  .ap-stat.approved::before { background:#00D68F; }
-  .ap-stat.rejected::before { background:#EF4444; }
-  .ap-stat.total::before    { background:#1A6EFF; }
-  .ap-stat-label { font-size:.72rem; font-weight:600; color:#5e6a85; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; }
-  .ap-stat-val   { font-size:1.8rem; font-weight:800; color:#1a2035; }
+  .ap-root,
+  .ap-root * {
+    box-sizing: border-box;
+    min-width: 0;
+  }
 
-  .ap-tabs { display:flex; gap:4px; background:#e8edf5; border-radius:8px; padding:3px; margin-bottom:20px; width:fit-content; }
-  .ap-tab  { padding:7px 20px; border:none; border-radius:6px; background:transparent;
-    font-family:inherit; font-size:.85rem; font-weight:500; color:#5e6a85; cursor:pointer; transition:all .2s; }
-  .ap-tab.active { background:#fff; color:#1a2035; box-shadow:0 1px 4px rgba(0,0,0,.1); }
+  .ap-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
 
-  .ap-card { background:#fff; border-radius:14px; border:1px solid #e4e9f0; box-shadow:0 2px 8px rgba(0,0,0,.04); overflow:hidden; }
-  .ap-card-head { display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #f0f4f8; }
-  .ap-card-title { font-size:.95rem; font-weight:700; }
-  .ap-card-count { font-size:.78rem; color:#5e6a85; }
+  .ap-header h1 {
+    margin: 0 0 5px;
+    color: var(--ap-ink);
+    font-size: clamp(1.35rem, 5vw, 1.8rem);
+    font-weight: 900;
+    line-height: 1.12;
+  }
 
-  .ap-table { width:100%; border-collapse:collapse; font-size:.84rem; }
-  .ap-table th { padding:12px 16px; text-align:left; font-size:.7rem; font-weight:700;
-    color:#5e6a85; text-transform:uppercase; letter-spacing:.06em; background:#f8fafc; }
-  .ap-table td { padding:14px 16px; border-top:1px solid #f8f9fb; vertical-align:top; }
-  .ap-table tr:hover td { background:#fafbfc; }
+  .ap-header p {
+    margin: 0;
+    max-width: 700px;
+    color: var(--ap-muted);
+    font-size: .88rem;
+    line-height: 1.45;
+  }
 
-  .ap-user-cell { display:flex; align-items:center; gap:10px; }
-  .ap-avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,#1A6EFF,#00D68F);
-    display:flex; align-items:center; justify-content:center; font-size:.85rem; font-weight:700; color:#fff; flex-shrink:0; }
-  .ap-user-name  { font-weight:600; font-size:.88rem; }
-  .ap-user-email { font-size:.72rem; color:#5e6a85; }
+  .ap-header-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    border: 1px solid rgba(20,157,128,.18);
+    border-radius: 16px;
+    background: var(--ap-teal-soft);
+    color: var(--ap-teal-dark);
+    box-shadow: var(--ap-shadow);
+  }
 
-  .ap-badge { display:inline-flex; align-items:center; gap:3px; font-size:.7rem; font-weight:700;
-    padding:3px 9px; border-radius:999px; }
-  .ap-badge-pending  { background:#fff8ec; color:#D97706; }
-  .ap-badge-approved { background:#e6faf3; color:#00A870; }
-  .ap-badge-rejected { background:#fff0f1; color:#E53E3E; }
-
-  .ap-detail { font-size:.78rem; color:#1a2035; line-height:1.7; }
-  .ap-detail span { color:#5e6a85; }
-
-  .ap-actions { display:flex; gap:8px; flex-wrap:wrap; }
-  .ap-btn { padding:7px 14px; border-radius:8px; border:none; font-family:inherit;
-    font-size:.8rem; font-weight:600; cursor:pointer; transition:all .2s; white-space:nowrap; }
-  .ap-btn-approve { background:#00D68F; color:#0B1A14; }
-  .ap-btn-approve:hover { background:#00A870; }
-  .ap-btn-reject  { background:#fff; color:#EF4444; border:1px solid #fed7d7; }
-  .ap-btn-reject:hover  { background:#fff0f1; }
-  .ap-btn:disabled { opacity:.5; cursor:not-allowed; }
-
-  .ap-expand-btn { background:none; border:none; color:#1A6EFF; font-family:inherit;
-    font-size:.78rem; font-weight:500; cursor:pointer; padding:0; }
-  .ap-expand-btn:hover { text-decoration:underline; }
-
-  .ap-detail-panel { background:#f8fafc; border-radius:8px; padding:12px 14px; margin-top:8px;
-    font-size:.78rem; line-height:1.8; }
-  .ap-detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 20px; }
-  .ap-detail-row  { display:flex; gap:6px; }
-  .ap-detail-key  { color:#5e6a85; min-width:120px; flex-shrink:0; }
-  .ap-detail-val  { font-weight:500; color:#1a2035; }
-
-  .ap-empty { padding:60px; text-align:center; color:#a0aec0; }
-  .ap-empty-icon { font-size:3rem; margin-bottom:12px; }
-  .ap-loading { padding:40px; text-align:center; color:#5e6a85; }
-
-  .ap-toast { position:fixed; bottom:24px; right:24px; background:#1a2035; color:#fff;
-    border-radius:10px; padding:12px 20px; font-size:.85rem; font-weight:500;
-    box-shadow:0 8px 24px rgba(0,0,0,.2); animation:toastIn .3s ease; z-index:9999; }
-  @keyframes toastIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-
-  @media(max-width:900px) {
-    .ap-stats { grid-template-columns:repeat(2,1fr); }
-    .ap-root  { padding:16px; }
+  .ap-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
   }
 
   .ap-root.driver-only .ap-stats {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .ap-root.driver-only .ap-card-title::before {
-    content: 'Driver Queue';
-    display: inline-block;
+  .ap-stat,
+  .ap-card {
+    border: 1px solid rgba(231, 231, 239, .92);
+    background: rgba(255,255,255,.94);
+    box-shadow: var(--ap-shadow);
+  }
+
+  .ap-stat {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    border-radius: 18px;
+  }
+
+  .ap-stat::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+  }
+
+  .ap-stat.total::before { background: var(--ap-blue); }
+  .ap-stat.pending::before { background: var(--ap-amber); }
+  .ap-stat.approved::before { background: var(--ap-teal); }
+  .ap-stat.rejected::before { background: var(--ap-red); }
+
+  .ap-stat-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 7px;
+    color: var(--ap-muted);
+    font-size: .72rem;
+    font-weight: 900;
+    letter-spacing: .04em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  .ap-stat-val {
+    color: var(--ap-ink);
+    font-size: clamp(1.28rem, 5vw, 1.7rem);
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .ap-stat-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border-radius: 12px;
+    background: #f3f7f6;
+    color: var(--ap-teal);
+  }
+
+  .ap-tabs {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-width: 100%;
+    margin-bottom: 16px;
+    padding: 4px;
+    border: 1px solid rgba(231,231,239,.72);
+    border-radius: 14px;
+    background: #ebeaf1;
+  }
+
+  .ap-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 36px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 11px;
+    background: transparent;
+    color: var(--ap-muted);
+    cursor: pointer;
+    font: inherit;
+    font-size: .82rem;
+    font-weight: 900;
+    white-space: nowrap;
+    transition: background .2s ease, color .2s ease, box-shadow .2s ease, transform .2s ease;
+  }
+
+  .ap-tab:hover {
+    color: var(--ap-ink);
+  }
+
+  .ap-tab.active {
+    background: #fff;
+    color: var(--ap-teal-dark);
+    box-shadow: 0 5px 14px rgba(24, 33, 49, .08);
+  }
+
+  .ap-card {
+    overflow: hidden;
+    border-radius: 18px;
+  }
+
+  .ap-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(231,231,239,.8);
+  }
+
+  .ap-card-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ap-ink);
+    font-size: .96rem;
+    font-weight: 900;
+    line-height: 1.25;
+  }
+
+  .ap-driver-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     margin-right: 8px;
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: #1A6EFF;
-    background: #eff5ff;
+    padding: 3px 8px;
     border-radius: 999px;
-    padding: 2px 8px;
-    vertical-align: middle;
+    background: var(--ap-blue-soft);
+    color: #286b9d;
+    font-size: .7rem;
+    font-weight: 900;
   }
 
-  @media (max-width: 700px) {
+  .ap-card-tools {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .ap-card-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: var(--ap-amber-soft);
+    color: #8a5a0a;
+    font-size: .74rem;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .ap-refresh-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(231,231,239,.92);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--ap-muted);
+    cursor: pointer;
+    transition: background .2s ease, color .2s ease, transform .2s ease;
+  }
+
+  .ap-refresh-btn:hover {
+    background: var(--ap-teal-soft);
+    color: var(--ap-teal-dark);
+    transform: translateY(-1px);
+  }
+
+  .ap-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .84rem;
+  }
+
+  .ap-table th {
+    padding: 12px 16px;
+    background: #f8f8fb;
+    color: var(--ap-muted);
+    font-size: .7rem;
+    font-weight: 900;
+    letter-spacing: .06em;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  .ap-table td {
+    padding: 14px 16px;
+    border-top: 1px solid #f2f3f7;
+    vertical-align: top;
+  }
+
+  .ap-table tr:hover td {
+    background: #fbfcfd;
+  }
+
+  .ap-user-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .ap-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    border-radius: 50%;
+    background: var(--ap-teal);
+    color: #fff;
+    font-size: .82rem;
+    font-weight: 900;
+  }
+
+  .ap-user-name {
+    color: var(--ap-ink);
+    font-size: .88rem;
+    font-weight: 900;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .ap-user-email {
+    margin-top: 3px;
+    color: var(--ap-muted);
+    font-size: .72rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+
+  .ap-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 900;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .ap-badge-pending { background: var(--ap-amber-soft); color: #8a5a0a; }
+  .ap-badge-approved { background: var(--ap-teal-soft); color: var(--ap-teal-dark); }
+  .ap-badge-rejected { background: var(--ap-red-soft); color: var(--ap-red); }
+
+  .ap-detail {
+    color: var(--ap-ink);
+    font-size: .78rem;
+    line-height: 1.65;
+  }
+
+  .ap-detail span {
+    color: var(--ap-muted);
+    font-weight: 700;
+  }
+
+  .ap-detail-strong {
+    font-weight: 900;
+  }
+
+  .ap-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ap-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    font: inherit;
+    font-size: .8rem;
+    font-weight: 900;
+    white-space: nowrap;
+    transition: background .2s ease, border-color .2s ease, color .2s ease, transform .2s ease, box-shadow .2s ease;
+  }
+
+  .ap-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .ap-btn-approve {
+    border: 1px solid rgba(20,157,128,.2);
+    background: var(--ap-teal);
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(20,157,128,.16);
+  }
+
+  .ap-btn-approve:hover {
+    background: var(--ap-teal-dark);
+  }
+
+  .ap-btn-reject {
+    border: 1px solid rgba(230,83,93,.36);
+    background: #fff;
+    color: var(--ap-red);
+  }
+
+  .ap-btn-reject:hover {
+    background: var(--ap-red-soft);
+  }
+
+  .ap-btn:disabled {
+    cursor: not-allowed;
+    opacity: .55;
+    transform: none;
+  }
+
+  .ap-expand-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 7px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--ap-teal-dark);
+    cursor: pointer;
+    font: inherit;
+    font-size: .76rem;
+    font-weight: 900;
+  }
+
+  .ap-expand-btn:hover {
+    text-decoration: underline;
+  }
+
+  .ap-expanded-cell {
+    padding: 0 16px 14px !important;
+    border-top: none !important;
+  }
+
+  .ap-detail-panel {
+    margin-top: 0;
+    padding: 13px 14px;
+    border: 1px solid rgba(231,231,239,.8);
+    border-radius: 14px;
+    background: #f8f8fb;
+    font-size: .78rem;
+    line-height: 1.75;
+  }
+
+  .ap-detail-panel-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 8px;
+    color: var(--ap-ink);
+    font-size: .8rem;
+    font-weight: 900;
+  }
+
+  .ap-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 20px;
+  }
+
+  .ap-detail-row {
+    display: flex;
+    gap: 6px;
+  }
+
+  .ap-detail-key {
+    min-width: 94px;
+    flex: 0 0 auto;
+    color: var(--ap-muted);
+    font-weight: 800;
+  }
+
+  .ap-detail-val {
+    color: var(--ap-ink);
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .ap-empty,
+  .ap-loading {
+    display: grid;
+    place-items: center;
+    gap: 10px;
+    padding: 44px 20px;
+    color: var(--ap-muted);
+    font-size: .88rem;
+    text-align: center;
+  }
+
+  .ap-empty p {
+    margin: 0;
+  }
+
+  .ap-empty-icon,
+  .ap-loading-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
+    background: var(--ap-teal-soft);
+    color: var(--ap-teal-dark);
+  }
+
+  .ap-loading-icon svg {
+    animation: apSpin .9s linear infinite;
+  }
+
+  @keyframes apSpin {
+    to { transform: rotate(360deg); }
+  }
+
+  .ap-toast {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 9999;
+    padding: 12px 18px;
+    border-radius: 14px;
+    background: #101318;
+    color: #fff;
+    box-shadow: 0 12px 30px rgba(0,0,0,.22);
+    font-size: .85rem;
+    font-weight: 700;
+    animation: toastIn .3s ease;
+  }
+
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media(max-width: 900px) {
+    .ap-root {
+      padding: 16px;
+    }
+
+    .ap-stats,
+    .ap-root.driver-only .ap-stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .ap-stat {
+      padding: 13px 14px;
+      border-radius: 16px;
+    }
+  }
+
+  @media(max-width: 700px) {
+    .ap-header {
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .ap-header h1 {
+      font-size: 1.45rem;
+    }
+
+    .ap-header p {
+      font-size: .82rem;
+    }
+
+    .ap-stats,
     .ap-root.driver-only .ap-stats {
       grid-template-columns: 1fr;
-      gap: 10px;
+    }
+
+    .ap-tabs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      width: 100%;
+    }
+
+    .ap-tab {
+      padding: 0 10px;
+      font-size: .78rem;
+    }
+
+    .ap-card-head {
+      align-items: flex-start;
+      flex-direction: column;
+      padding: 12px 14px;
+    }
+
+    .ap-card-tools {
+      justify-content: flex-start;
+      width: 100%;
+    }
+
+    .ap-table,
+    .ap-table tbody,
+    .ap-table tr,
+    .ap-table td {
+      display: block;
+      width: 100%;
+    }
+
+    .ap-table thead {
+      display: none;
+    }
+
+    .ap-table tr {
+      margin: 10px;
+      overflow: hidden;
+      border: 1px solid var(--ap-line);
+      border-radius: 14px;
+      background: #fff;
+    }
+
+    .ap-table tr.ap-expanded-row {
+      margin-top: -10px;
+      border-top: 0;
+      border-radius: 0 0 14px 14px;
+    }
+
+    .ap-table td {
+      padding: 10px 12px;
+      border-top: 1px solid #f3f4f8;
+    }
+
+    .ap-table td:first-child {
+      border-top: none;
+    }
+
+    .ap-table td[data-label]::before {
+      content: attr(data-label);
+      display: block;
+      margin-bottom: 5px;
+      color: #6b7280;
+      font-size: .68rem;
+      font-weight: 900;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .ap-expanded-cell {
+      padding: 10px 12px 12px !important;
+    }
+
+    .ap-detail-grid {
+      grid-template-columns: 1fr;
+      gap: 5px;
+    }
+
+    .ap-detail-row {
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .ap-detail-key {
+      min-width: 0;
+    }
+
+    .ap-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      width: 100%;
+    }
+
+    .ap-btn {
+      width: 100%;
+      min-height: 38px;
+    }
+
+    .ap-toast {
+      left: 12px;
+      right: 12px;
+      bottom: 94px;
+      padding: 10px 12px;
+      font-size: .8rem;
     }
   }
 `;
@@ -136,7 +722,7 @@ export default function AdminApprovals({ driverOnly = false }) {
         setUtilizers(uRes.data);
       }
     } catch (err) {
-      showToast("❌ Failed to load applications");
+      showToast("Failed to load applications");
     } finally {
       setLoading(false);
     }
@@ -144,33 +730,31 @@ export default function AdminApprovals({ driverOnly = false }) {
 
   useEffect(() => { fetchAll(); }, []);
 
-  // ── Driver action ─────────────────────────────────────────
   const handleDriver = async (id, status) => {
     setSaving(s => ({ ...s, [id]: true }));
     try {
       await updateDriverStatus(id, status);
       setDrivers(prev => prev.filter(d => d._id !== id && d.id !== id));
       showToast(status === "approved"
-        ? "✅ Driver approved — role updated automatically"
-        : "✕ Driver application rejected");
+        ? "Driver approved - role updated automatically"
+        : "Driver application rejected");
     } catch (err) {
-      showToast("❌ " + (err.response?.data?.message || "Action failed"));
+      showToast(err.response?.data?.message || "Action failed");
     } finally {
       setSaving(s => ({ ...s, [id]: false }));
     }
   };
 
-  // ── Utilizer action ───────────────────────────────────────
   const handleUtilizer = async (id, status) => {
     setSaving(s => ({ ...s, [`u_${id}`]: true }));
     try {
       await api.patch(`/api/utilizers/${id}/status`, { status });
       setUtilizers(prev => prev.filter(u => u.id !== id));
       showToast(status === "approved"
-        ? "✅ Utilizer approved — role updated automatically"
-        : "✕ Utilizer application rejected");
+        ? "Utilizer approved - role updated automatically"
+        : "Utilizer application rejected");
     } catch (err) {
-      showToast("❌ " + (err.response?.data?.error || "Action failed"));
+      showToast(err.response?.data?.error || "Action failed");
     } finally {
       setSaving(s => ({ ...s, [`u_${id}`]: false }));
     }
@@ -178,74 +762,130 @@ export default function AdminApprovals({ driverOnly = false }) {
 
   const toggleExpand = (id) => setExpanded(e => ({ ...e, [id]: !e[id] }));
 
-  // ── Stats ─────────────────────────────────────────────────
   const totalPending = drivers.length + utilizers.length;
 
   return (
     <>
       <style>{css}</style>
       <div className={`ap-root ${driverOnly ? "driver-only" : ""}`}>
-
-        {/* HEADER */}
         <div className="ap-header">
-          <h1>{driverOnly ? "Driver Approvals" : "Approvals"}</h1>
-          <p>{driverOnly
-            ? "Review and approve driver applications"
-            : "Review and approve driver and utilizer station applications"}
-          </p>
+          <div>
+            <h1>{driverOnly ? "Driver Approvals" : "Approvals"}</h1>
+            <p>{driverOnly
+              ? "Review and approve driver applications"
+              : "Review and approve driver and utilizer station applications"}
+            </p>
+          </div>
+          <span className="ap-header-icon">
+            <ShieldCheck size={22} strokeWidth={2.35} aria-hidden="true" />
+          </span>
         </div>
 
-        {/* STATS */}
         <div className="ap-stats">
           <div className="ap-stat total">
-            <div className="ap-stat-label">📋 Total pending</div>
-            <div className="ap-stat-val">{totalPending}</div>
+            <div>
+              <div className="ap-stat-label">
+                <ClipboardCheck size={14} strokeWidth={2.35} aria-hidden="true" />
+                Total pending
+              </div>
+              <div className="ap-stat-val">{totalPending}</div>
+            </div>
+            <span className="ap-stat-icon">
+              <ClipboardCheck size={20} strokeWidth={2.35} aria-hidden="true" />
+            </span>
           </div>
+
           <div className="ap-stat pending">
-            <div className="ap-stat-label">🚛 Drivers waiting</div>
-            <div className="ap-stat-val">{drivers.length}</div>
+            <div>
+              <div className="ap-stat-label">
+                <Truck size={14} strokeWidth={2.35} aria-hidden="true" />
+                Drivers waiting
+              </div>
+              <div className="ap-stat-val">{drivers.length}</div>
+            </div>
+            <span className="ap-stat-icon">
+              <Truck size={20} strokeWidth={2.35} aria-hidden="true" />
+            </span>
           </div>
+
           {!driverOnly && (
             <div className="ap-stat pending">
-              <div className="ap-stat-label">♻️ Utilizers waiting</div>
-              <div className="ap-stat-val">{utilizers.length}</div>
+              <div>
+                <div className="ap-stat-label">
+                  <Recycle size={14} strokeWidth={2.35} aria-hidden="true" />
+                  Utilizers waiting
+                </div>
+                <div className="ap-stat-val">{utilizers.length}</div>
+              </div>
+              <span className="ap-stat-icon">
+                <Recycle size={20} strokeWidth={2.35} aria-hidden="true" />
+              </span>
             </div>
           )}
+
           <div className="ap-stat approved">
-            <div className="ap-stat-label">✅ Auto role update</div>
-            <div className="ap-stat-val">On</div>
+            <div>
+              <div className="ap-stat-label">
+                <BadgeCheck size={14} strokeWidth={2.35} aria-hidden="true" />
+                Auto role update
+              </div>
+              <div className="ap-stat-val">On</div>
+            </div>
+            <span className="ap-stat-icon">
+              <BadgeCheck size={20} strokeWidth={2.35} aria-hidden="true" />
+            </span>
           </div>
         </div>
 
-        {/* TABS */}
         {!driverOnly && (
           <div className="ap-tabs">
-            <button className={`ap-tab ${tab === "drivers" ? "active" : ""}`} onClick={() => setTab("drivers")}>
-              🚛 Drivers ({drivers.length})
+            <button className={`ap-tab ${tab === "drivers" ? "active" : ""}`} onClick={() => setTab("drivers")} type="button">
+              <Truck size={15} strokeWidth={2.35} aria-hidden="true" />
+              Drivers ({drivers.length})
             </button>
-            <button className={`ap-tab ${tab === "utilizers" ? "active" : ""}`} onClick={() => setTab("utilizers")}>
-              ♻️ Utilizers ({utilizers.length})
+            <button className={`ap-tab ${tab === "utilizers" ? "active" : ""}`} onClick={() => setTab("utilizers")} type="button">
+              <Recycle size={15} strokeWidth={2.35} aria-hidden="true" />
+              Utilizers ({utilizers.length})
             </button>
           </div>
         )}
 
-        {/* DRIVERS TABLE */}
         {(driverOnly || tab === "drivers") && (
           <div className="ap-card">
             <div className="ap-card-head">
-              <span className="ap-card-title">Driver Applications</span>
-              <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                <span className="ap-card-count">{drivers.length} pending</span>
-                <button onClick={fetchAll} style={{ padding:"5px 12px", border:"1px solid #e4e9f0",
-                  borderRadius:7, background:"#fff", cursor:"pointer", fontSize:".78rem" }}>🔄</button>
+              <span className="ap-card-title">
+                {driverOnly && (
+                  <span className="ap-driver-chip">
+                    <Truck size={12} strokeWidth={2.35} aria-hidden="true" />
+                    Driver Queue
+                  </span>
+                )}
+                <Truck size={18} strokeWidth={2.35} aria-hidden="true" />
+                Driver Applications
+              </span>
+              <div className="ap-card-tools">
+                <span className="ap-card-count">
+                  <ClipboardCheck size={14} strokeWidth={2.35} aria-hidden="true" />
+                  {drivers.length} pending
+                </span>
+                <button onClick={fetchAll} className="ap-refresh-btn" type="button" aria-label="Refresh driver applications">
+                  <RefreshCw size={15} strokeWidth={2.35} aria-hidden="true" />
+                </button>
               </div>
             </div>
 
             {loading ? (
-              <div className="ap-loading">⏳ Loading…</div>
+              <div className="ap-loading">
+                <span className="ap-loading-icon">
+                  <Loader2 size={22} strokeWidth={2.35} aria-hidden="true" />
+                </span>
+                Loading...
+              </div>
             ) : drivers.length === 0 ? (
               <div className="ap-empty">
-                <div className="ap-empty-icon">🎉</div>
+                <span className="ap-empty-icon">
+                  <CircleCheck size={22} strokeWidth={2.45} aria-hidden="true" />
+                </span>
                 <p>No pending driver applications</p>
               </div>
             ) : (
@@ -262,14 +902,13 @@ export default function AdminApprovals({ driverOnly = false }) {
                 <tbody>
                   {drivers.map(d => {
                     const id    = d._id || d.id;
-                    const email = d.userId?.email || d.email || "—";
+                    const email = d.userId?.email || d.email || "-";
                     const name  = d.userId?.fullName || email.split("@")[0];
 
                     return (
                       <React.Fragment key={id}>
                         <tr>
-                          {/* Applicant */}
-                          <td>
+                          <td data-label="Applicant">
                             <div className="ap-user-cell">
                               <div className="ap-avatar">{name.charAt(0).toUpperCase()}</div>
                               <div>
@@ -279,69 +918,92 @@ export default function AdminApprovals({ driverOnly = false }) {
                             </div>
                           </td>
 
-                          {/* License */}
-                          <td>
+                          <td data-label="License">
                             <div className="ap-detail">
-                              <div><span>№ </span>{d.licenseNumber}</div>
-                              <div><span>Exp: </span>{d.licenseExpiry ? new Date(d.licenseExpiry).toLocaleDateString() : "—"}</div>
-                              <div><span>Company: </span>{d.company || "—"}</div>
+                              <div><span>No. </span>{d.licenseNumber}</div>
+                              <div><span>Exp: </span>{d.licenseExpiry ? new Date(d.licenseExpiry).toLocaleDateString() : "-"}</div>
+                              <div><span>Company: </span>{d.company || "-"}</div>
                             </div>
                           </td>
 
-                          {/* Vehicle */}
-                          <td>
+                          <td data-label="Vehicle">
                             <div className="ap-detail">
-                              <div>{d.vehicleModel || "—"} {d.vehicleYear ? `(${d.vehicleYear})` : ""}</div>
-                              <div><span>Plate: </span>{d.plateNumber || "—"}</div>
-                              <div><span>Capacity: </span>{d.capacity ? `${d.capacity} kg` : "—"}</div>
+                              <div className="ap-detail-strong">{d.vehicleModel || "-"} {d.vehicleYear ? `(${d.vehicleYear})` : ""}</div>
+                              <div><span>Plate: </span>{d.plateNumber || "-"}</div>
+                              <div><span>Capacity: </span>{d.capacity ? `${d.capacity} kg` : "-"}</div>
                             </div>
-                            <button className="ap-expand-btn" onClick={() => toggleExpand(id)}>
-                              {expanded[id] ? "▲ Hide details" : "▼ More details"}
+                            <button className="ap-expand-btn" onClick={() => toggleExpand(id)} type="button">
+                              {expanded[id] ? (
+                                <>
+                                  <ChevronUp size={14} strokeWidth={2.35} aria-hidden="true" />
+                                  Hide details
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown size={14} strokeWidth={2.35} aria-hidden="true" />
+                                  More details
+                                </>
+                              )}
                             </button>
                           </td>
 
-                          {/* Status */}
-                          <td><span className="ap-badge ap-badge-pending">⏳ Pending</span></td>
+                          <td data-label="Status">
+                            <span className="ap-badge ap-badge-pending">
+                              <Loader2 size={13} strokeWidth={2.35} aria-hidden="true" />
+                              Pending
+                            </span>
+                          </td>
 
-                          {/* Actions */}
-                          <td>
+                          <td data-label="Actions">
                             <div className="ap-actions">
                               <button className="ap-btn ap-btn-approve"
                                 disabled={saving[id]}
-                                onClick={() => handleDriver(id, "approved")}>
-                                {saving[id] ? "…" : "✓ Approve"}
+                                onClick={() => handleDriver(id, "approved")}
+                                type="button">
+                                {saving[id] ? (
+                                  "Saving..."
+                                ) : (
+                                  <>
+                                    <CircleCheck size={15} strokeWidth={2.45} aria-hidden="true" />
+                                    Approve
+                                  </>
+                                )}
                               </button>
                               <button className="ap-btn ap-btn-reject"
                                 disabled={saving[id]}
-                                onClick={() => handleDriver(id, "rejected")}>
-                                ✕ Reject
+                                onClick={() => handleDriver(id, "rejected")}
+                                type="button">
+                                <CircleX size={15} strokeWidth={2.45} aria-hidden="true" />
+                                Reject
                               </button>
                             </div>
                           </td>
                         </tr>
 
-                        {/* Expanded details */}
                         {expanded[id] && (
-                          <tr>
-                            <td colSpan={5} style={{ padding:"0 16px 14px", borderTop:"none" }}>
+                          <tr className="ap-expanded-row">
+                            <td colSpan={5} className="ap-expanded-cell">
                               <div className="ap-detail-panel">
-                                <div style={{ fontWeight:600, marginBottom:8, fontSize:".8rem" }}>Emergency Contact</div>
+                                <div className="ap-detail-panel-title">
+                                  <Contact size={15} strokeWidth={2.35} aria-hidden="true" />
+                                  Emergency Contact
+                                </div>
                                 <div className="ap-detail-grid">
                                   <div className="ap-detail-row">
                                     <span className="ap-detail-key">Name:</span>
-                                    <span className="ap-detail-val">{d.emergencyContact?.name || "—"}</span>
+                                    <span className="ap-detail-val">{d.emergencyContact?.name || "-"}</span>
                                   </div>
                                   <div className="ap-detail-row">
                                     <span className="ap-detail-key">Phone:</span>
-                                    <span className="ap-detail-val">{d.emergencyContact?.phone || "—"}</span>
+                                    <span className="ap-detail-val">{d.emergencyContact?.phone || "-"}</span>
                                   </div>
                                   <div className="ap-detail-row">
                                     <span className="ap-detail-key">Relation:</span>
-                                    <span className="ap-detail-val">{d.emergencyContact?.relation || "—"}</span>
+                                    <span className="ap-detail-val">{d.emergencyContact?.relation || "-"}</span>
                                   </div>
                                   <div className="ap-detail-row">
                                     <span className="ap-detail-key">Applied:</span>
-                                    <span className="ap-detail-val">{d.createdAt ? new Date(d.createdAt).toLocaleString() : "—"}</span>
+                                    <span className="ap-detail-val">{d.createdAt ? new Date(d.createdAt).toLocaleString() : "-"}</span>
                                   </div>
                                 </div>
                               </div>
@@ -357,23 +1019,36 @@ export default function AdminApprovals({ driverOnly = false }) {
           </div>
         )}
 
-        {/* UTILIZERS TABLE */}
         {!driverOnly && tab === "utilizers" && (
           <div className="ap-card">
             <div className="ap-card-head">
-              <span className="ap-card-title">Utilizer Station Applications</span>
-              <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                <span className="ap-card-count">{utilizers.length} pending</span>
-                <button onClick={fetchAll} style={{ padding:"5px 12px", border:"1px solid #e4e9f0",
-                  borderRadius:7, background:"#fff", cursor:"pointer", fontSize:".78rem" }}>🔄</button>
+              <span className="ap-card-title">
+                <Recycle size={18} strokeWidth={2.35} aria-hidden="true" />
+                Utilizer Station Applications
+              </span>
+              <div className="ap-card-tools">
+                <span className="ap-card-count">
+                  <ClipboardCheck size={14} strokeWidth={2.35} aria-hidden="true" />
+                  {utilizers.length} pending
+                </span>
+                <button onClick={fetchAll} className="ap-refresh-btn" type="button" aria-label="Refresh utilizer applications">
+                  <RefreshCw size={15} strokeWidth={2.35} aria-hidden="true" />
+                </button>
               </div>
             </div>
 
             {loading ? (
-              <div className="ap-loading">⏳ Loading…</div>
+              <div className="ap-loading">
+                <span className="ap-loading-icon">
+                  <Loader2 size={22} strokeWidth={2.35} aria-hidden="true" />
+                </span>
+                Loading...
+              </div>
             ) : utilizers.length === 0 ? (
               <div className="ap-empty">
-                <div className="ap-empty-icon">🎉</div>
+                <span className="ap-empty-icon">
+                  <CircleCheck size={22} strokeWidth={2.45} aria-hidden="true" />
+                </span>
                 <p>No pending utilizer applications</p>
               </div>
             ) : (
@@ -390,14 +1065,13 @@ export default function AdminApprovals({ driverOnly = false }) {
                 <tbody>
                   {utilizers.map(u => {
                     const id    = u.id;
-                    const email = u.user?.email || "—";
+                    const email = u.user?.email || "-";
                     const name  = u.user?.fullName || email.split("@")[0];
 
                     return (
                       <React.Fragment key={id}>
                         <tr>
-                          {/* Applicant */}
-                          <td>
+                          <td data-label="Applicant">
                             <div className="ap-user-cell">
                               <div className="ap-avatar">{name.charAt(0).toUpperCase()}</div>
                               <div>
@@ -407,62 +1081,87 @@ export default function AdminApprovals({ driverOnly = false }) {
                             </div>
                           </td>
 
-                          {/* Station */}
-                          <td>
+                          <td data-label="Station">
                             <div className="ap-detail">
-                              <div style={{ fontWeight:600 }}>{u.stationName}</div>
+                              <div className="ap-detail-strong">{u.stationName}</div>
                               <div><span>Address: </span>{u.stationAddress}</div>
                               <div><span>Method: </span>{u.method}</div>
                             </div>
                           </td>
 
-                          {/* License */}
-                          <td>
+                          <td data-label="License & Capacity">
                             <div className="ap-detail">
-                              <div><span>№ </span>{u.licenseNumber}</div>
-                              <div><span>Exp: </span>{u.licenseExpiry ? new Date(u.licenseExpiry).toLocaleDateString() : "—"}</div>
-                              <div><span>Capacity: </span>{u.capacity ? `${u.capacity} kg/day` : "—"}</div>
-                              <div><span>Waste types: </span>{(u.wasteTypes || []).join(", ") || "—"}</div>
+                              <div><span>No. </span>{u.licenseNumber}</div>
+                              <div><span>Exp: </span>{u.licenseExpiry ? new Date(u.licenseExpiry).toLocaleDateString() : "-"}</div>
+                              <div><span>Capacity: </span>{u.capacity ? `${u.capacity} kg/day` : "-"}</div>
+                              <div><span>Waste types: </span>{(u.wasteTypes || []).join(", ") || "-"}</div>
                             </div>
-                            <button className="ap-expand-btn" onClick={() => toggleExpand(`u_${id}`)}>
-                              {expanded[`u_${id}`] ? "▲ Hide" : "▼ More"}
+                            <button className="ap-expand-btn" onClick={() => toggleExpand(`u_${id}`)} type="button">
+                              {expanded[`u_${id}`] ? (
+                                <>
+                                  <ChevronUp size={14} strokeWidth={2.35} aria-hidden="true" />
+                                  Hide
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown size={14} strokeWidth={2.35} aria-hidden="true" />
+                                  More
+                                </>
+                              )}
                             </button>
                           </td>
 
-                          {/* Status */}
-                          <td><span className="ap-badge ap-badge-pending">⏳ Pending</span></td>
+                          <td data-label="Status">
+                            <span className="ap-badge ap-badge-pending">
+                              <Loader2 size={13} strokeWidth={2.35} aria-hidden="true" />
+                              Pending
+                            </span>
+                          </td>
 
-                          {/* Actions */}
-                          <td>
+                          <td data-label="Actions">
                             <div className="ap-actions">
                               <button className="ap-btn ap-btn-approve"
                                 disabled={saving[`u_${id}`]}
-                                onClick={() => handleUtilizer(id, "approved")}>
-                                {saving[`u_${id}`] ? "…" : "✓ Approve"}
+                                onClick={() => handleUtilizer(id, "approved")}
+                                type="button">
+                                {saving[`u_${id}`] ? (
+                                  "Saving..."
+                                ) : (
+                                  <>
+                                    <CircleCheck size={15} strokeWidth={2.45} aria-hidden="true" />
+                                    Approve
+                                  </>
+                                )}
                               </button>
                               <button className="ap-btn ap-btn-reject"
                                 disabled={saving[`u_${id}`]}
-                                onClick={() => handleUtilizer(id, "rejected")}>
-                                ✕ Reject
+                                onClick={() => handleUtilizer(id, "rejected")}
+                                type="button">
+                                <CircleX size={15} strokeWidth={2.45} aria-hidden="true" />
+                                Reject
                               </button>
                             </div>
                           </td>
                         </tr>
 
-                        {/* Expanded contact */}
                         {expanded[`u_${id}`] && (
-                          <tr>
-                            <td colSpan={5} style={{ padding:"0 16px 14px", borderTop:"none" }}>
+                          <tr className="ap-expanded-row">
+                            <td colSpan={5} className="ap-expanded-cell">
                               <div className="ap-detail-panel">
-                                <div style={{ fontWeight:600, marginBottom:8, fontSize:".8rem" }}>Contact & Location</div>
+                                <div className="ap-detail-panel-title">
+                                  <MapPin size={15} strokeWidth={2.35} aria-hidden="true" />
+                                  Contact & Location
+                                </div>
                                 <div className="ap-detail-grid">
                                   <div className="ap-detail-row">
                                     <span className="ap-detail-key">Contact:</span>
-                                    <span className="ap-detail-val">{u.contactName || "—"}</span>
+                                    <span className="ap-detail-val">{u.contactName || "-"}</span>
                                   </div>
                                   <div className="ap-detail-row">
                                     <span className="ap-detail-key">Phone:</span>
-                                    <span className="ap-detail-val">{u.contactPhone || "—"}</span>
+                                    <span className="ap-detail-val">
+                                      <Phone size={12} strokeWidth={2.35} aria-hidden="true" /> {u.contactPhone || "-"}
+                                    </span>
                                   </div>
                                   <div className="ap-detail-row">
                                     <span className="ap-detail-key">Coordinates:</span>
@@ -472,7 +1171,7 @@ export default function AdminApprovals({ driverOnly = false }) {
                                   </div>
                                   <div className="ap-detail-row">
                                     <span className="ap-detail-key">Applied:</span>
-                                    <span className="ap-detail-val">{u.createdAt ? new Date(u.createdAt).toLocaleString() : "—"}</span>
+                                    <span className="ap-detail-val">{u.createdAt ? new Date(u.createdAt).toLocaleString() : "-"}</span>
                                   </div>
                                 </div>
                               </div>
@@ -487,7 +1186,6 @@ export default function AdminApprovals({ driverOnly = false }) {
             )}
           </div>
         )}
-
       </div>
 
       {toast && <div className="ap-toast">{toast}</div>}
