@@ -798,7 +798,7 @@ const Home = () => {
         }
 
         .mobile-shell .home-redesign .section {
-          padding: 56px 0;
+          padding: 16px 0;
         }
 
         .mobile-shell .home-redesign header .container {
