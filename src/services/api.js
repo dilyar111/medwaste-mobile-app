@@ -14,11 +14,13 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Redirect to login on 401
+const isAuthRequest = (url = "") => url.includes("/api/auth/login") || url.includes("/api/auth/register");
+
+// Redirect to home only when an existing protected session becomes unauthorized.
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    if (err.response?.status === 401 && !isAuthRequest(err.config?.url)) {
       sessionStorage.clear();
       window.location.href = "/";
     }
