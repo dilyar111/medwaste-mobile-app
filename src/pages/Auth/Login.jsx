@@ -1,55 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { Activity, ArrowRight, CircleAlert, Lock, LogIn, Mail, ShieldCheck } from "lucide-react";
 import { login } from "../../services/api";
-
-const iconProps = {
-  width: 20,
-  height: 20,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 2,
-  strokeLinecap: "round",
-  strokeLinejoin: "round",
-  "aria-hidden": true,
-};
-
-const MailIcon = () => (
-  <svg {...iconProps}>
-    <rect width="20" height="16" x="2" y="4" rx="2" />
-    <path d="m22 7-8.97 5.7a2 2 0 0 1-2.06 0L2 7" />
-  </svg>
-);
-
-const LockIcon = () => (
-  <svg {...iconProps}>
-    <rect width="18" height="11" x="3" y="11" rx="2" />
-    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-  </svg>
-);
-
-const LogInIcon = () => (
-  <svg {...iconProps}>
-    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-    <path d="m10 17 5-5-5-5" />
-    <path d="M15 12H3" />
-  </svg>
-);
-
-const ShieldCheckIcon = () => (
-  <svg {...iconProps}>
-    <path d="M20 13c0 5-3.5 7.5-7.7 8.9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.4a1.3 1.3 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z" />
-    <path d="m9 12 2 2 4-4" />
-  </svg>
-);
-
-const AlertCircleIcon = () => (
-  <svg {...iconProps}>
-    <circle cx="12" cy="12" r="10" />
-    <path d="M12 8v4" />
-    <path d="M12 16h.01" />
-  </svg>
-);
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -96,43 +48,36 @@ const Login = () => {
     <div className="auth-page login-redesign">
       <style>{`
         .login-redesign {
+          --login-bg: #f4f3f8;
+          --login-card: #ffffff;
+          --login-ink: #101318;
+          --login-muted: #7d8490;
+          --login-line: #e7e7ef;
+          --login-teal: #149d80;
+          --login-teal-dark: #0d8069;
+          --login-teal-soft: #e7f6f1;
+          --login-blue: #4f96ce;
           position: relative;
           isolation: isolate;
           min-height: 100%;
           overflow-x: hidden;
-          padding: clamp(18px, 5vw, 34px);
+          padding: clamp(16px, 5vw, 28px);
           background:
-            radial-gradient(circle at 18% 12%, rgba(26,110,255,.26), transparent 28%),
-            radial-gradient(circle at 84% 14%, rgba(0,214,143,.20), transparent 26%),
-            linear-gradient(135deg, #0b0f1a 0%, #121d31 54%, #0b0f1a 100%);
+            radial-gradient(circle at 18% 4%, rgba(20,157,128,.16), transparent 30%),
+            radial-gradient(circle at 88% 12%, rgba(79,150,206,.14), transparent 26%),
+            var(--login-bg);
         }
 
         .login-redesign::before {
           content: "";
           position: absolute;
-          inset: 0;
+          inset: 0 0 auto;
+          height: 190px;
           z-index: -2;
           background:
-            linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,.055) 1px, transparent 1px);
-          background-size: 34px 34px;
-          mask-image: linear-gradient(to bottom, rgba(0,0,0,.76), transparent 78%);
-          animation: loginGridDrift 16s linear infinite;
-        }
-
-        .login-redesign::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          z-index: -1;
-          pointer-events: none;
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.045'/%3E%3C/svg%3E");
-          opacity: .45;
-        }
-
-        @keyframes loginGridDrift {
-          from { transform: translate3d(0,0,0); }
-          to { transform: translate3d(34px,34px,0); }
+            linear-gradient(135deg, rgba(20,157,128,.18), rgba(79,150,206,.12)),
+            #ffffff;
+          border-radius: 0 0 34px 34px;
         }
 
         .login-redesign * {
@@ -141,16 +86,13 @@ const Login = () => {
         }
 
         .login-redesign .auth-container {
-          width: min(100%, 460px);
+          width: min(100%, 392px);
           max-width: 100%;
-          padding: clamp(28px, 7vw, 44px);
+          padding: 20px;
           border-radius: 28px;
-          border: 1px solid rgba(255,255,255,.13);
-          background:
-            linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.07));
-          box-shadow: 0 30px 90px rgba(0,0,0,.42);
-          backdrop-filter: blur(24px);
-          -webkit-backdrop-filter: blur(24px);
+          border: 1px solid rgba(231, 231, 239, .92);
+          background: rgba(255,255,255,.94);
+          box-shadow: 0 22px 54px rgba(24, 33, 49, .10);
           animation: loginCardEnter .72s var(--ease-out) both;
         }
 
@@ -160,40 +102,52 @@ const Login = () => {
         }
 
         .login-redesign .auth-header {
-          margin-bottom: 30px;
+          margin-bottom: 22px;
+        }
+
+        .login-redesign .login-brand-row {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 9px;
+          margin-bottom: 18px;
+          color: var(--login-teal);
+          font-size: 1.28rem;
+          font-weight: 900;
+          letter-spacing: .04em;
+          line-height: 1;
         }
 
         .login-redesign .brand-mark {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          width: 54px;
-          height: 54px;
-          margin-bottom: 18px;
-          border-radius: 18px;
-          background: linear-gradient(135deg, rgba(26,110,255,.24), rgba(0,214,143,.22));
-          color: #7df0cf;
-          box-shadow: 0 16px 40px rgba(0,214,143,.14);
+          width: 34px;
+          height: 34px;
+          border-radius: 50%;
+          background: var(--login-teal);
+          color: #fff;
+          box-shadow: 0 10px 24px rgba(20,157,128,.20);
         }
 
         .login-redesign .auth-header h1 {
-          margin-bottom: 8px;
-          color: #f8fafc !important;
-          font-size: clamp(2rem, 8vw, 2.6rem);
-          line-height: 1.08;
-          font-weight: 800 !important;
+          margin-bottom: 7px;
+          color: var(--login-ink) !important;
+          font-size: clamp(1.35rem, 6vw, 1.65rem) !important;
+          line-height: 1.15;
+          font-weight: 900 !important;
         }
 
         .login-redesign .auth-header p {
           max-width: 320px;
           margin: 0 auto;
-          color: rgba(248,250,252,.64);
-          font-size: .98rem;
-          line-height: 1.55;
+          color: var(--login-muted);
+          font-size: .88rem;
+          line-height: 1.48;
         }
 
         .login-redesign .auth-form {
-          gap: 18px;
+          gap: 14px;
         }
 
         .login-redesign .form-group {
@@ -201,10 +155,10 @@ const Login = () => {
         }
 
         .login-redesign .form-group label {
-          margin-bottom: 8px;
-          color: rgba(248,250,252,.78);
-          font-size: .86rem;
-          font-weight: 700;
+          margin-bottom: 7px;
+          color: #4b5565;
+          font-size: .78rem;
+          font-weight: 800;
           letter-spacing: 0;
           text-transform: none;
         }
@@ -218,7 +172,7 @@ const Login = () => {
           left: 15px;
           top: 50%;
           z-index: 1;
-          color: rgba(248,250,252,.42);
+          color: #a2a8b1;
           transform: translateY(-50%);
           transition: color .22s ease, transform .22s var(--ease-out);
         }
@@ -228,27 +182,26 @@ const Login = () => {
           width: 100%;
           min-height: 50px;
           padding: 14px 16px 14px 46px;
-          border: 1px solid rgba(255,255,255,.12);
+          border: 1px solid var(--login-line);
           border-radius: 16px;
-          background: rgba(255,255,255,.075);
-          color: #fff;
-          box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+          background: #f8f8fb;
+          color: var(--login-ink);
+          box-shadow: none;
+          transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
         }
 
         .login-redesign .auth-form input::placeholder {
-          color: rgba(248,250,252,.36);
+          color: #a8adb6;
         }
 
         .login-redesign .auth-form input:focus {
-          border-color: rgba(26,110,255,.82);
-          background: rgba(255,255,255,.10);
-          box-shadow:
-            0 0 0 4px rgba(26,110,255,.20),
-            inset 0 1px 0 rgba(255,255,255,.06);
+          border-color: rgba(20,157,128,.72);
+          background: #fff;
+          box-shadow: 0 0 0 4px rgba(20,157,128,.12);
         }
 
         .login-redesign .input-wrap:focus-within .input-icon {
-          color: #7df0cf;
+          color: var(--login-teal);
           transform: translateY(-50%) scale(1.04);
         }
 
@@ -258,12 +211,12 @@ const Login = () => {
           gap: 9px;
           width: 100%;
           margin: 0;
-          padding: 12px 14px;
-          border: 1px solid rgba(255,77,94,.28);
+          padding: 11px 12px;
+          border: 1px solid rgba(224, 93, 99, .24);
           border-radius: 14px;
-          background: rgba(255,77,94,.10);
-          color: #fecdd3;
-          font-size: .88rem;
+          background: #fff1f2;
+          color: #b42335;
+          font-size: .82rem;
           line-height: 1.45;
           text-align: left;
           animation: loginErrorIn .28s ease both;
@@ -277,7 +230,7 @@ const Login = () => {
         .login-redesign .login-error svg {
           flex: 0 0 auto;
           margin-top: 1px;
-          color: #fb7185;
+          color: #e05d63;
         }
 
         .login-redesign .btn-full-width {
@@ -285,8 +238,19 @@ const Login = () => {
           margin-top: 2px;
           border-radius: 16px;
           gap: 9px;
-          font-size: 1rem;
-          box-shadow: 0 16px 38px rgba(26,110,255,.28);
+          border: 0;
+          background: var(--login-teal);
+          color: #fff;
+          font-size: .95rem !important;
+          font-weight: 900;
+          box-shadow: 0 16px 32px rgba(20,157,128,.22);
+          transition: transform .2s var(--ease-out), box-shadow .2s ease, background .2s ease;
+        }
+
+        .login-redesign .btn-full-width:hover:not(:disabled) {
+          background: var(--login-teal-dark);
+          transform: translateY(-1px);
+          box-shadow: 0 18px 38px rgba(20,157,128,.26);
         }
 
         .login-redesign .btn-full-width:disabled {
@@ -306,27 +270,44 @@ const Login = () => {
 
         .login-redesign .forgot-password {
           margin-top: 2px;
-          color: rgba(248,250,252,.56);
-          font-weight: 600;
+          color: var(--login-muted);
+          font-size: .86rem;
+          font-weight: 700;
         }
 
         .login-redesign .forgot-password:hover {
-          color: #7df0cf;
+          color: var(--login-teal);
         }
 
         .login-redesign .auth-footer {
-          margin-top: 28px;
-          color: rgba(248,250,252,.56);
-          font-size: .95rem;
+          margin-top: 22px;
+          color: var(--login-muted);
+          font-size: .88rem;
         }
 
         .login-redesign .auth-footer a {
-          color: #7db2ff;
+          color: var(--login-teal-dark);
           font-weight: 800;
         }
 
         .login-redesign .auth-footer a:hover {
-          color: #7df0cf;
+          color: var(--login-blue);
+        }
+
+        .login-redesign .login-security-note {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+          margin-top: 14px;
+          color: var(--login-muted);
+          font-size: .76rem;
+          line-height: 1.35;
+        }
+
+        .login-redesign .login-security-note svg {
+          color: var(--login-teal);
+          flex: 0 0 auto;
         }
 
         .mobile-shell .login-redesign {
@@ -336,7 +317,7 @@ const Login = () => {
 
         .mobile-shell .login-redesign .auth-container {
           width: 100%;
-          padding: 28px 20px;
+          padding: 20px;
           border-radius: 22px;
         }
 
@@ -344,15 +325,8 @@ const Login = () => {
           margin-bottom: 24px;
         }
 
-        .mobile-shell .login-redesign .brand-mark {
-          width: 48px;
-          height: 48px;
-          border-radius: 16px;
-          margin-bottom: 14px;
-        }
-
         .mobile-shell .login-redesign .auth-header h1 {
-          font-size: 2rem !important;
+          font-size: 1.45rem !important;
         }
 
         .mobile-shell .login-redesign .auth-header p,
@@ -366,7 +340,7 @@ const Login = () => {
           }
 
           .login-redesign .auth-container {
-            padding: 26px 18px;
+            padding: 18px;
             border-radius: 22px;
           }
 
@@ -380,11 +354,14 @@ const Login = () => {
 
       <div className="auth-container">
         <div className="auth-header">
-          <div className="brand-mark">
-            <ShieldCheckIcon />
+          <div className="login-brand-row" aria-label="MedWaste">
+            <span className="brand-mark">
+              <Activity size={20} strokeWidth={2.5} />
+            </span>
+            MEDWASTE
           </div>
-          <h1>MedWaste</h1>
-          <p>Sign in to continue to your dashboard.</p>
+          <h1>Welcome back</h1>
+          <p>Sign in to continue monitoring your medical waste operations.</p>
         </div>
 
         <form className="auth-form" onSubmit={handleLogin}>
@@ -392,7 +369,7 @@ const Login = () => {
             <label>Email</label>
             <div className="input-wrap">
               <span className="input-icon">
-                <MailIcon />
+                <Mail size={19} strokeWidth={2.2} />
               </span>
               <input
                 type="email"
@@ -407,7 +384,7 @@ const Login = () => {
             <label>Password</label>
             <div className="input-wrap">
               <span className="input-icon">
-                <LockIcon />
+                <Lock size={19} strokeWidth={2.2} />
               </span>
               <input
                 type="password"
@@ -421,7 +398,7 @@ const Login = () => {
 
           {error && (
             <p className="login-error" role="alert">
-              <AlertCircleIcon />
+              <CircleAlert size={18} strokeWidth={2.3} />
               {error}
             </p>
           )}
@@ -431,12 +408,17 @@ const Login = () => {
             className="btn btn-primary btn-full-width"
             disabled={loading}
           >
-            <LogInIcon />
+            <LogIn size={18} strokeWidth={2.4} />
             {loading ? "Signing in..." : "Log In"}
+            {!loading && <ArrowRight size={17} strokeWidth={2.4} />}
           </button>
           <a href="#" className="forgot-password">
             Forgot your password?
           </a>
+          <p className="login-security-note">
+            <ShieldCheck size={15} strokeWidth={2.3} />
+            Protected clinical operations access
+          </p>
         </form>
 
         <p className="auth-footer">
