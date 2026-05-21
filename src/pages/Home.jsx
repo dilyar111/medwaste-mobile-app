@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Activity,
@@ -63,7 +63,7 @@ const stats = [
 ];
 
 const bottomTabs = [
-  { icon: House, label: 'Main', href: '#top', active: true },
+  { icon: House, label: 'Main', href: '#top' },
   { icon: ClipboardCheck, label: 'About', href: '#about' },
   { icon: Star, label: 'Features', href: '#features' },
   { icon: LayoutList, label: 'Workflow', href: '#workflow' },
@@ -71,6 +71,80 @@ const bottomTabs = [
 ];
 
 const Home = () => {
+  const [activeTab, setActiveTab] = useState(bottomTabs[0].href);
+  const autoScrollTimer = useRef(null);
+  const isAutoScrolling = useRef(false);
+  const activeTabIndex = Math.max(0, bottomTabs.findIndex((tab) => tab.href === activeTab));
+
+  useEffect(() => {
+    const scrollRoot = document.querySelector('.home-dumamed');
+    if (!scrollRoot) return undefined;
+
+    let ticking = false;
+
+    const updateActiveTab = () => {
+      const rootRect = scrollRoot.getBoundingClientRect();
+      const anchorLine = scrollRoot.scrollTop + scrollRoot.clientHeight * 0.36;
+      const current = bottomTabs.reduce((active, tab) => {
+        const section = document.querySelector(tab.href);
+        if (!section) return active;
+
+        const sectionTop = section.getBoundingClientRect().top - rootRect.top + scrollRoot.scrollTop;
+        return sectionTop <= anchorLine ? tab.href : active;
+      }, bottomTabs[0].href);
+
+      setActiveTab(current);
+      ticking = false;
+    };
+
+    const onScroll = () => {
+      if (isAutoScrolling.current) return;
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(updateActiveTab);
+    };
+
+    updateActiveTab();
+    scrollRoot.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+
+    return () => {
+      scrollRoot.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      if (autoScrollTimer.current) window.clearTimeout(autoScrollTimer.current);
+    };
+  }, []);
+
+  const holdActiveDuringScroll = () => {
+    isAutoScrolling.current = true;
+    if (autoScrollTimer.current) window.clearTimeout(autoScrollTimer.current);
+
+    autoScrollTimer.current = window.setTimeout(() => {
+      isAutoScrolling.current = false;
+    }, 620);
+  };
+
+  const handleTabClick = (event, href) => {
+    event.preventDefault();
+
+    const scrollRoot = event.currentTarget.closest('.home-dumamed');
+    if (href === '#top') {
+      setActiveTab(href);
+      holdActiveDuringScroll();
+      scrollRoot?.scrollTo({ top: 0, behavior: 'smooth' });
+      window.history.replaceState(null, '', href);
+      return;
+    }
+
+    const section = document.querySelector(href);
+    if (!section) return;
+
+    setActiveTab(href);
+    holdActiveDuringScroll();
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.history.replaceState(null, '', href);
+  };
+
   return (
     <div id="top" className="landing-page home-dumamed">
       <style>{`
@@ -206,6 +280,7 @@ const Home = () => {
 
         .home-dumamed .dm-section {
           margin-top: 24px;
+          scroll-margin-top: 16px;
         }
 
         .home-dumamed .dm-section-head {
@@ -595,34 +670,137 @@ const Home = () => {
           gap: 4px;
           width: 100%;
           margin: 28px 0 -104px;
-          padding: 10px 10px max(10px, env(safe-area-inset-bottom));
+          padding: 8px 10px max(8px, env(safe-area-inset-bottom));
           border-top: 1px solid rgba(200, 202, 210, .65);
           border-radius: 22px 22px 0 0;
           background: rgba(255,255,255,.92);
           backdrop-filter: blur(14px);
+          box-shadow: 0 -16px 38px rgba(24, 33, 49, .08);
+          overflow: hidden;
+          isolation: isolate;
+          --tab-gap: 4px;
+        }
+
+        .home-dumamed .dm-tab-indicator {
+          position: absolute;
+          z-index: 0;
+          top: 6px;
+          left: 10px;
+          width: calc((100% - 20px - (var(--tab-gap) * 4)) / 5);
+          height: calc(100% - 12px);
+          border-radius: 17px;
+          background:
+            linear-gradient(180deg, rgba(255,255,255,.92), rgba(239,250,246,.95)),
+            var(--dm-teal-soft);
+          box-shadow:
+            inset 0 0 0 2px rgba(20, 157, 128, .28),
+            0 10px 22px rgba(20, 157, 128, .12);
+          pointer-events: none;
+          transform: translate3d(calc(var(--active-tab, 0) * (100% + var(--tab-gap))), 0, 0);
+          transition: transform .2s cubic-bezier(.22,1,.36,1);
+          will-change: transform;
+          backface-visibility: hidden;
         }
 
         .home-dumamed .dm-tab {
+          position: relative;
+          z-index: 1;
           display: inline-flex;
-          min-height: 56px;
+          min-height: 64px;
           flex-direction: column;
           align-items: center;
           justify-content: center;
           gap: 3px;
+          border: 0;
           border-radius: 14px;
+          background: transparent;
           color: #8a8d93;
+          font: inherit;
           font-size: .72rem;
           font-weight: 800;
           line-height: 1;
+          cursor: pointer;
+          -webkit-tap-highlight-color: transparent;
+          transition: color .16s ease, transform .16s cubic-bezier(.2,.9,.25,1);
+        }
+
+        .home-dumamed .dm-tab::after {
+          content: "";
+          position: absolute;
+          right: 20%;
+          bottom: 7px;
+          left: 20%;
+          height: 3px;
+          border-radius: 999px;
+          background: var(--dm-teal);
+          opacity: 0;
+          transform: scaleX(.35);
+          transform-origin: center;
+          transition: opacity .14s ease, transform .18s cubic-bezier(.2,.9,.25,1);
         }
 
         .home-dumamed .dm-tab svg {
           width: 25px;
           height: 25px;
+          transition: transform .16s cubic-bezier(.2,.9,.25,1), color .14s ease, filter .14s ease;
+        }
+
+        .home-dumamed .dm-tab span {
+          transition: transform .14s ease, color .14s ease;
         }
 
         .home-dumamed .dm-tab.active {
           color: var(--dm-ink);
+        }
+
+        .home-dumamed .dm-tab.active::after {
+          opacity: 1;
+          transform: scaleX(1);
+        }
+
+        .home-dumamed .dm-tab.active svg {
+          color: var(--dm-teal-dark);
+          filter: drop-shadow(0 5px 8px rgba(20,157,128,.16));
+          transform: translateY(-2px) scale(1.05);
+        }
+
+        .home-dumamed .dm-tab.active span {
+          color: var(--dm-ink);
+          transform: translateY(-1px);
+        }
+
+        .home-dumamed .dm-tab:active {
+          transform: scale(.96);
+        }
+
+        .home-dumamed .dm-tab:focus-visible {
+          outline: 2px solid rgba(20,157,128,.35);
+          outline-offset: -3px;
+        }
+
+        @media (hover: hover) {
+          .home-dumamed .dm-tab:hover {
+            color: #47525c;
+            transform: translateY(-1px);
+          }
+
+          .home-dumamed .dm-tab:hover svg {
+            transform: translateY(-1px);
+          }
+
+          .home-dumamed .dm-tab.active:hover svg {
+            transform: translateY(-2px) scale(1.05);
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .home-dumamed .dm-tab-indicator,
+          .home-dumamed .dm-tab,
+          .home-dumamed .dm-tab::after,
+          .home-dumamed .dm-tab svg,
+          .home-dumamed .dm-tab span {
+            transition: none;
+          }
         }
 
         @media (max-width: 360px) {
@@ -835,13 +1013,28 @@ const Home = () => {
           </div>
         </section>
 
-        <nav className="dm-bottom-tabs" aria-label="Home sections">
-          {bottomTabs.map(({ icon: Icon, label, href, active }) => (
-            <a className={`dm-tab${active ? ' active' : ''}`} href={href} key={label}>
-              <Icon strokeWidth={active ? 2.6 : 2.1} aria-hidden="true" />
-              <span>{label}</span>
-            </a>
-          ))}
+        <nav
+          className="dm-bottom-tabs"
+          aria-label="Home sections"
+          style={{ '--active-tab': activeTabIndex }}
+        >
+          <span className="dm-tab-indicator" aria-hidden="true" />
+          {bottomTabs.map(({ icon: Icon, label, href }) => {
+            const active = activeTab === href;
+
+            return (
+              <a
+                className={`dm-tab${active ? ' active' : ''}`}
+                href={href}
+                key={label}
+                onClick={(event) => handleTabClick(event, href)}
+                aria-current={active ? 'page' : undefined}
+              >
+                <Icon strokeWidth={active ? 2.6 : 2.1} aria-hidden="true" />
+                <span>{label}</span>
+              </a>
+            );
+          })}
         </nav>
       </main>
     </div>
