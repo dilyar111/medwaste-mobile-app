@@ -579,16 +579,25 @@ const Home = () => {
           justify-content: center;
           width: 48px;
           height: 48px;
-          margin-bottom: 18px;
+          flex: 0 0 48px;
+          margin-bottom: 0;
           border-radius: 15px;
           background: linear-gradient(135deg, rgba(26,110,255,.12), rgba(0,214,143,.14));
           color: var(--blue);
         }
 
+        .home-redesign .feature-title-row {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          margin-bottom: 14px;
+        }
+
         .home-redesign .feature-item h4 {
-          margin-bottom: 10px;
+          margin-bottom: 0;
           color: #111827;
           font-size: 1.08rem;
+          line-height: 1.25;
         }
 
         .home-redesign .feature-item p {
@@ -995,8 +1004,10 @@ const Home = () => {
           <div className="feature-grid">
             {features.map(({ icon: Icon, title, text }) => (
               <div className="feature-item" key={title}>
-                <span className="feature-icon"><Icon /></span>
-                <h4>{title}</h4>
+                <div className="feature-title-row">
+                  <span className="feature-icon"><Icon /></span>
+                  <h4>{title}</h4>
+                </div>
                 <p>{text}</p>
               </div>
             ))}
@@ -1016,8 +1027,10 @@ const Home = () => {
           <div className="feature-grid">
             {keyFeatures.map(({ icon: Icon, title, text }) => (
               <div className="feature-item" key={title}>
-                <span className="feature-icon"><Icon /></span>
-                <h4>{title}</h4>
+                <div className="feature-title-row">
+                  <span className="feature-icon"><Icon /></span>
+                  <h4>{title}</h4>
+                </div>
                 <p>{text}</p>
               </div>
             ))}
