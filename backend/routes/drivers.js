@@ -3,9 +3,9 @@ const Driver   = require('../models/pg/Driver');
 const User     = require('../models/pg/User');
 const Task     = require('../models/pg/Task');
 const { authenticate } = require('../middleware/auth');
-const { setDriverAvailable } = require('../services/redis');
-const { autoAssignUtilizer } = require('../services/autoAssign');
-const { emitRouteStatus } = require('../services/Socket');
+const { authRole } = require('../middleware/authRole');
+const { emitRouteStatus, emitTaskUpdate } = require('../services/Socket');
+const { autoAssignUtilizer, setDriverAvailable: releaseDriver } = require('../services/autoAssign');
 const { Op } = require('sequelize');
 
 // ── POST /api/drivers/register ────────────────────────────────
@@ -43,6 +43,44 @@ router.post('/register', authenticate, async (req, res) => {
   }
 });
 
+// GET /api/drivers/available — approved, on-shift drivers for dispatcher's company
+router.get('/available', authRole(['personnel']), async (req, res) => {
+  try {
+    const dispatchUser = await User.findByPk(req.user.userId, { attributes: ['companyId'] });
+    if (!dispatchUser?.companyId) {
+      return res.status(400).json({ error: 'User is not linked to a company' });
+    }
+
+    const drivers = await Driver.findAll({
+      where: { status: 'approved' },
+      include: [{
+        model: User,
+        as: 'user',
+        attributes: ['id', 'fullName', 'email', 'isAvailable', 'companyId'],
+        where: {
+          role: 'driver',
+          isAvailable: true,
+          companyId: dispatchUser.companyId,
+        },
+        required: true,
+      }],
+      order: [[{ model: User, as: 'user' }, 'fullName', 'ASC']],
+    });
+
+    res.json(drivers.map((driver) => ({
+      id: driver.id,
+      userId: driver.userId,
+      fullName: driver.user?.fullName || driver.user?.email || `Driver #${driver.id}`,
+      email: driver.user?.email || null,
+      plateNumber: driver.plateNumber,
+      vehicleModel: driver.vehicleModel,
+      isAvailable: driver.user?.isAvailable ?? false,
+    })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── GET /api/drivers/my-status ────────────────────────────────
 router.get('/my-status', authenticate, async (req, res) => {
   try {
@@ -71,12 +109,11 @@ router.get('/tasks', authenticate, async (req, res) => {
   }
 });
 
-// ── PATCH /api/drivers/tasks/:id/status ──────────────────────
-// Driver updates task status (assigned → in_transit → completed)
+// Driver updates task: assigned → in_transit (pickup) → at_utilization (delivered)
 router.patch('/tasks/:id/status', authenticate, async (req, res) => {
   try {
     const { status } = req.body;
-    const allowed = ['in_transit', 'cancelled'];
+    const allowed = ['in_transit', 'at_utilization', 'cancelled'];
 
     if (!allowed.includes(status)) {
       return res.status(400).json({ error: `Status must be one of: ${allowed.join(', ')}` });
@@ -90,10 +127,16 @@ router.patch('/tasks/:id/status', authenticate, async (req, res) => {
     });
     if (!task) return res.status(404).json({ message: 'Task not found or not yours' });
 
-    const updates = { status };
-    if (status === 'completed') updates.completedAt = new Date();
+    if (status === 'in_transit' && task.status !== 'assigned') {
+      return res.status(400).json({ error: 'Only assigned tasks can be picked up' });
+    }
+    if (status === 'at_utilization' && task.status !== 'in_transit') {
+      return res.status(400).json({ error: 'Only in-transit tasks can be delivered to the station' });
+    }
 
+    const updates = { status };
     await task.update(updates);
+
     emitRouteStatus(task.id, {
       routeId: task.id,
       taskId: task.id,
@@ -101,18 +144,14 @@ router.patch('/tasks/:id/status', authenticate, async (req, res) => {
       rawStatus: task.status,
     });
 
-    // Когда водитель забрал контейнер — назначить утилизатора
-    if (status === 'in_transit') {
+    if (status === 'at_utilization') {
       await autoAssignUtilizer(task.id);
+      await releaseDriver(req.user.userId, true);
+      emitTaskUpdate(task);
     }
-    if (status === 'in_transit') {
-      console.log(`🔄 Calling autoAssignUtilizer for task ${task.id}`);
-     await autoAssignUtilizer(task.id);
-    }
-    // Free up driver in Redis cache when task is done
-    if (status === 'completed' || status === 'cancelled') {
-      await User.update({ isAvailable: true }, { where: { id: req.user.userId } });
-      await setDriverAvailable(driver.id, true);
+
+    if (status === 'cancelled') {
+      await releaseDriver(req.user.userId, true);
     }
 
     res.json(task);

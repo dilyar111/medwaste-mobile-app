@@ -9,6 +9,7 @@ const disposalLogSchema = new mongoose.Schema({
   utilizerId:  { type: Number, required: true },
   wasteType:   { type: String, enum: ['A', 'B', 'C', 'D'] },
   weightKg:    { type: Number, default: 0 },
+  actualWeight:{ type: Number },
   fullness:    { type: Number },                   // final fullness % from MongoDB
   method:      { type: String, default: 'incineration' }, // incineration | autoclave | chemical
   notes:       { type: String },

@@ -1,11 +1,13 @@
 const { Op } = require('sequelize');
 const Container = require('../models/pg/Container');
 const Task = require('../models/pg/Task');
+const User = require('../models/pg/User');
+const Driver = require('../models/pg/Driver');
 const Alert = require('../models/Alert');
 const History = require('../models/mongo/History');
 const DisposalLog = require('../models/mongo/DisposalLog');
 
-const REPORT_TYPES = new Set(['overview', 'dept', 'type', 'alerts']);
+const REPORT_TYPES = new Set(['overview', 'dept', 'type', 'alerts', 'containers']);
 const AGGREGATIONS = new Set(['day', 'week', 'month']);
 const SORT_FIELDS = new Set(['department', 'containers', 'avgFullness', 'totalWeight', 'needsAttention']);
 
@@ -131,7 +133,67 @@ async function getLatestReadings(dateRange) {
   ]);
 }
 
-async function getReportsData(query = {}) {
+async function getContainerLogistics(dateRange, companyId) {
+  const taskWhere = {
+    status: 'completed',
+    ...buildSequelizeDateFilter('completedAt', dateRange),
+  };
+  if (companyId) taskWhere.companyId = companyId;
+
+  const tasks = await Task.findAll({
+    where: taskWhere,
+    include: [
+      { model: Container, as: 'container', attributes: ['qrCode', 'location', 'wasteType'] },
+      { model: User, as: 'driver', attributes: ['id', 'fullName', 'email'] },
+      { model: User, as: 'utilizer', attributes: ['id', 'fullName', 'email'] },
+    ],
+    order: [['completedAt', 'DESC']],
+    limit: 500,
+  });
+
+  if (tasks.length === 0) return [];
+
+  const taskIds = tasks.map((t) => t.id);
+  const driverUserIds = [...new Set(tasks.map((t) => t.driverId).filter(Boolean))];
+
+  const [disposalLogs, driverProfiles] = await Promise.all([
+    DisposalLog.find({ taskId: { $in: taskIds } }).lean(),
+    driverUserIds.length
+      ? Driver.findAll({
+        where: { userId: driverUserIds },
+        attributes: ['userId', 'plateNumber', 'vehicleModel'],
+      })
+      : [],
+  ]);
+
+  const logByTaskId = new Map(disposalLogs.map((log) => [log.taskId, log]));
+  const plateByUserId = new Map(driverProfiles.map((d) => [d.userId, d.plateNumber]));
+  const vehicleByUserId = new Map(driverProfiles.map((d) => [d.userId, d.vehicleModel]));
+
+  return tasks.map((task) => {
+    const log = logByTaskId.get(task.id);
+    const weight = log?.actualWeight ?? log?.weightKg ?? null;
+
+    return {
+      taskId: task.id,
+      containerId: task.containerId,
+      location: task.container?.location || '—',
+      wasteType: task.container?.wasteType || log?.wasteType || '—',
+      driverName: task.driver?.fullName || task.driver?.email || '—',
+      driverEmail: task.driver?.email || null,
+      vehiclePlate: plateByUserId.get(task.driverId) || '—',
+      vehicleModel: vehicleByUserId.get(task.driverId) || '—',
+      utilizerName: task.utilizer?.fullName || task.utilizer?.email || '—',
+      assignedAt: task.assignedAt,
+      disposedAt: task.completedAt || log?.completedAt || null,
+      weightKg: weight != null ? Number(Number(weight).toFixed(2)) : null,
+      disposalMethod: log?.method || '—',
+      notes: log?.notes || '',
+    };
+  });
+}
+
+async function getReportsData(query = {}, options = {}) {
   const reportType = REPORT_TYPES.has(query.reportType) ? query.reportType : 'overview';
   const aggregation = AGGREGATIONS.has(query.aggregation) ? query.aggregation : 'month';
   const dateRange = parseDateRange(query);
@@ -141,8 +203,11 @@ async function getReportsData(query = {}) {
   const sortBy = SORT_FIELDS.has(query.sortBy) ? query.sortBy : 'department';
   const sortDir = String(query.sortDir || 'asc').toLowerCase() === 'desc' ? 'desc' : 'asc';
 
+  const companyId = options.companyId || null;
+  const containerWhere = companyId ? { companyId } : {};
+
   const [containers, latestReadings, disposalLogs, unresolvedAlerts, alerts, completedTasks] = await Promise.all([
-    Container.findAll({ order: [['createdAt', 'ASC']] }),
+    Container.findAll({ where: containerWhere, order: [['createdAt', 'ASC']] }),
     getLatestReadings(dateRange),
     DisposalLog.find(buildMongoDateFilter('completedAt', dateRange)).lean(),
     Alert.find({ resolved: false, ...buildMongoDateFilter('timestamp', dateRange) }).lean(),
@@ -150,20 +215,30 @@ async function getReportsData(query = {}) {
     Task.findAll({
       where: {
         status: 'completed',
+        ...(companyId ? { companyId } : {}),
         ...buildSequelizeDateFilter('completedAt', dateRange),
       },
       attributes: ['id', 'containerId', 'completedAt'],
     }),
   ]);
 
+  const containerLogistics = reportType === 'containers'
+    ? await getContainerLogistics(dateRange, companyId)
+    : [];
+
+  const companyContainerIds = new Set(containers.map((c) => String(c.qrCode)));
+  const scopedDisposalLogs = companyId
+    ? disposalLogs.filter((log) => companyContainerIds.has(String(log.containerId)))
+    : disposalLogs;
+
   const latestByBin = new Map(latestReadings.map((r) => [String(r._id), Number(r.fullness) || 0]));
   const containerByQr = new Map(containers.map((container) => [String(container.qrCode), container]));
   const weightByContainer = new Map();
   let totalWeight = 0;
 
-  disposalLogs.forEach((log) => {
+  scopedDisposalLogs.forEach((log) => {
     const containerId = String(log.containerId);
-    const weight = Number(log.weightKg) || 0;
+    const weight = Number(log.actualWeight ?? log.weightKg) || 0;
     totalWeight += weight;
     weightByContainer.set(containerId, (weightByContainer.get(containerId) || 0) + weight);
   });
@@ -266,7 +341,7 @@ async function getReportsData(query = {}) {
   }, { critical: 0, warning: 0, info: 0, resolved: 0 });
 
   const timeSeriesMap = new Map();
-  disposalLogs.forEach((log) => {
+  scopedDisposalLogs.forEach((log) => {
     const key = getPeriodKey(log.completedAt || log.createdAt || new Date(), aggregation);
     if (!timeSeriesMap.has(key)) timeSeriesMap.set(key, { period: key, totalWeight: 0, disposals: 0 });
     const row = timeSeriesMap.get(key);
@@ -292,8 +367,10 @@ async function getReportsData(query = {}) {
       averageFullness,
       needsAttention,
       totalWeight: Number(totalWeight.toFixed(1)),
-      completedTasks: completedTasks.length,
+      completedTasks: reportType === 'containers' ? containerLogistics.length : completedTasks.length,
+      totalDisposals: containerLogistics.length || scopedDisposalLogs.length,
     },
+    containerLogistics,
     departments: paginatedDepartments,
     barData,
     wasteTypeDistribution,
@@ -311,6 +388,38 @@ async function getReportsData(query = {}) {
 }
 
 function reportsToCsv(report) {
+  if (report.params?.reportType === 'containers' && Array.isArray(report.containerLogistics)) {
+    const rows = [
+      [
+        'Container',
+        'Location',
+        'Waste Type',
+        'Driver',
+        'Vehicle Plate',
+        'Utilizer',
+        'Assigned At',
+        'Disposed At',
+        'Weight (kg)',
+        'Method',
+      ],
+      ...report.containerLogistics.map((row) => [
+        row.containerId,
+        row.location,
+        row.wasteType,
+        row.driverName,
+        row.vehiclePlate,
+        row.utilizerName,
+        row.assignedAt ? new Date(row.assignedAt).toISOString() : '',
+        row.disposedAt ? new Date(row.disposedAt).toISOString() : '',
+        row.weightKg != null ? row.weightKg : '',
+        row.disposalMethod,
+      ]),
+    ];
+    return rows
+      .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+  }
+
   const rows = [
     ['Department', 'Containers', 'Avg. Fullness', 'Total Weight (kg)', 'Need Attention'],
     ...report.departments.map((dept) => [
@@ -329,5 +438,6 @@ function reportsToCsv(report) {
 
 module.exports = {
   getReportsData,
+  getContainerLogistics,
   reportsToCsv,
 };

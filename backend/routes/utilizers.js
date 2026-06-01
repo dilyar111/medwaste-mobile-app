@@ -81,7 +81,10 @@ router.patch('/:id/status', isAdmin, async (req, res) => {
 
     // Auto-upgrade role on approval
     if (status === 'approved') {
-      await User.update({ role: 'utilizer' }, { where: { id: utilizer.userId } });
+      await User.update(
+        { role: 'utilizer', stationId: utilizer.stationId },
+        { where: { id: utilizer.userId } },
+      );
     }
 
     // Notify user

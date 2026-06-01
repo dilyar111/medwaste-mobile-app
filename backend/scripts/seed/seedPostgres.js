@@ -14,6 +14,7 @@ const {
   readJson,
   sequelize,
   upsertUser,
+  getDefaultCompanyId,
 } = require('./utils');
 
 async function seedPostgres({ close = true } = {}) {
@@ -25,20 +26,21 @@ async function seedPostgres({ close = true } = {}) {
   const hash = await passwordHash();
 
   const result = await sequelize.transaction(async (transaction) => {
+    const companyId = await getDefaultCompanyId(transaction);
     const admins = [];
     const personnel = [];
     const drivers = [];
     const utilizers = [];
 
-    for (const admin of usersData.admins) admins.push(await upsertUser(admin, 'admin', hash, transaction));
-    for (const person of usersData.personnel) personnel.push(await upsertUser(person, 'personnel', hash, transaction));
+    for (const admin of usersData.admins) admins.push(await upsertUser(admin, 'admin', hash, transaction, companyId));
+    for (const person of usersData.personnel) personnel.push(await upsertUser(person, 'personnel', hash, transaction, companyId));
 
     for (const driver of usersData.drivers) {
       const user = await upsertUser({
         ...driver,
         department: 'Collection Fleet',
         isAvailable: true,
-      }, 'driver', hash, transaction);
+      }, 'driver', hash, transaction, companyId);
       const driverPayload = {
         userId: user.id,
         licenseNumber: driver.licenseNumber,
@@ -62,7 +64,7 @@ async function seedPostgres({ close = true } = {}) {
         ...utilizer,
         department: 'Utilization',
         isAvailable: true,
-      }, 'utilizer', hash, transaction);
+      }, 'utilizer', hash, transaction, companyId);
       const utilizerPayload = {
         userId: user.id,
         stationName: utilizer.stationName,
@@ -79,8 +81,14 @@ async function seedPostgres({ close = true } = {}) {
         status: 'approved',
       };
       const existingUtilizer = await Utilizer.findOne({ where: { userId: user.id }, transaction });
-      if (existingUtilizer) await existingUtilizer.update(utilizerPayload, { transaction });
-      else await Utilizer.create(utilizerPayload, { transaction });
+      let utilizerRow;
+      if (existingUtilizer) {
+        await existingUtilizer.update(utilizerPayload, { transaction });
+        utilizerRow = existingUtilizer;
+      } else {
+        utilizerRow = await Utilizer.create(utilizerPayload, { transaction });
+      }
+      await user.update({ stationId: utilizerRow.stationId }, { transaction });
       utilizers.push(user);
     }
 
@@ -91,6 +99,7 @@ async function seedPostgres({ close = true } = {}) {
         location: container.location,
         lat: container.lat,
         lon: container.lon,
+        companyId,
       }, { transaction });
     }
 
@@ -128,6 +137,7 @@ async function seedPostgres({ close = true } = {}) {
       const existing = await Task.findOne({ where: { containerId }, transaction });
       const payload = {
         containerId,
+        companyId,
         driverId: driver.id,
         utilizerId: utilizer?.id || null,
         status,

@@ -156,6 +156,14 @@ async function ensureContainerIntegrity() {
   }
 }
 
+async function runPendingMigrations() {
+  if (!sequelize) return;
+  if (process.env.SKIP_MIGRATIONS === 'true') return;
+
+  const { runMigrations } = require('../scripts/runMigrations');
+  await runMigrations();
+}
+
 async function connectPostgres() {
   if (!sequelize) {
     console.warn('⚠️  POSTGRES_URI/DATABASE_URL not set — PostgreSQL is disabled');
@@ -164,6 +172,7 @@ async function connectPostgres() {
   try {
     await sequelize.authenticate();
     await sequelize.sync({ alter: false });
+    await runPendingMigrations();
     await ensureUserProfileColumns();
     await ensureContainerIntegrity();
     console.log('✅ PostgreSQL connected');
@@ -179,10 +188,27 @@ async function connectMongo() {
     return;
   }
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 10000,
+    });
     console.log('✅ MongoDB connected');
   } catch (err) {
-    console.error('❌ MongoDB Error:', err.message);
+    const msg = err.message || String(err);
+    if (/whitelist|IP address|ReplicaSetNoPrimary|SSL|TLS|tlsv1 alert|alert number 80/i.test(msg)) {
+      console.error(
+        '❌ MongoDB Error: Atlas rejected the connection (often IP not whitelisted or TLS blocked before auth).'
+      );
+      console.error(
+        '   Fix: MongoDB Atlas → Network Access → Add IP Address → "Add Current IP" (or 0.0.0.0/0 for local dev only).'
+      );
+      console.error(
+        '   Then use MONGO_URI with a database name, e.g. mongodb+srv://USER:PASS@cluster0....mongodb.net/medwaste?retryWrites=true&w=majority'
+      );
+    } else if (/ENOTFOUND|querySrv/i.test(msg)) {
+      console.error('❌ MongoDB Error: invalid MONGO_URI host — check the connection string in backend/.env');
+    } else {
+      console.error('❌ MongoDB Error:', msg);
+    }
   }
 }
 

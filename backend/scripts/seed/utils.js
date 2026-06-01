@@ -7,12 +7,15 @@ const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const { sequelize, connectPostgres, connectMongo } = require('../../config/db');
 
+require('../../models/pg/Company');
 require('../../models/pg/User');
 require('../../models/pg/Container');
 require('../../models/pg/Task');
 require('../../models/pg/Driver');
 require('../../models/pg/Utilizer');
+require('../../models/pg/associations');
 
+const Company = require('../../models/pg/Company');
 const User = require('../../models/pg/User');
 const Container = require('../../models/pg/Container');
 const Task = require('../../models/pg/Task');
@@ -23,6 +26,7 @@ const Alert = require('../../models/Alert');
 const Notification = require('../../models/Notification');
 const RoutePoint = require('../../models/mongo/RoutePoint');
 const DisposalLog = require('../../models/mongo/DisposalLog');
+const { getDefaultCompanyId } = require('../../utils/tenant');
 
 const SEED_PREFIX = 'AST-MED';
 const SEED_EMAIL_DOMAIN = 'medwaste.kz';
@@ -184,7 +188,9 @@ function interpolateRoute(start, end, points, firstTimestamp, routeConfig = read
   return docs;
 }
 
-async function upsertUser(user, role, passwordHash, transaction) {
+async function upsertUser(user, role, passwordHash, transaction, companyId) {
+  const tenantId = companyId || await getDefaultCompanyId(transaction);
+
   const [row] = await User.findOrCreate({
     where: { email: user.email },
     defaults: {
@@ -193,6 +199,7 @@ async function upsertUser(user, role, passwordHash, transaction) {
       email: user.email,
       password: passwordHash,
       role,
+      companyId: tenantId,
       department: user.department || null,
       isAvailable: user.isAvailable ?? true,
       plateNumber: user.plateNumber || null,
@@ -208,6 +215,7 @@ async function upsertUser(user, role, passwordHash, transaction) {
     username: user.username,
     password: passwordHash,
     role,
+    companyId: tenantId,
     department: user.department || null,
     plateNumber: user.plateNumber || null,
     vehicleModel: user.vehicleModel || null,
@@ -274,5 +282,7 @@ module.exports = {
   randInt,
   readJson,
   sequelize,
+  Company,
+  getDefaultCompanyId,
   upsertUser,
 };

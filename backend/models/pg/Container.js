@@ -11,6 +11,11 @@ const Container = sequelize.define('Container', {
     primaryKey: true,
     autoIncrement: true,
   },
+  companyId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: { model: 'companies', key: 'id' },
+  },
   qrCode: {
     type: DataTypes.STRING,
     unique: true,
@@ -49,6 +54,7 @@ const Container = sequelize.define('Container', {
   indexes: [
     { unique: true, fields: ['qrCode'] },
     { fields: ['lat', 'lon'] },
+    { fields: ['companyId'] },
   ],
   hooks: {
     beforeValidate(container) {
