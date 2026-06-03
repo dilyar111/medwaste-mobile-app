@@ -15,9 +15,9 @@ class RootErrorBoundary extends React.Component {
   render() {
     if (this.state.error) {
       return (
-        <div style={{ padding: 24, fontFamily: 'system-ui', maxWidth: 560 }}>
-          <h1 style={{ fontSize: 18 }}>MedWaste failed to start</h1>
-          <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13, background: '#f1f5f9', padding: 12 }}>
+        <div className="root-error">
+          <h1>MedWaste failed to start</h1>
+          <pre>
             {String(this.state.error?.message || this.state.error)}
           </pre>
         </div>
