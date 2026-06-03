@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/pg/User');
 const { sequelize } = require('../config/db');
+const { getDefaultCompanyId } = require('../utils/tenant');
 const { saveSession, deleteSession } = require('../services/redis');
 const { authenticate } = require('../middleware/auth');
 const { validateProfilePayload } = require('../services/profile');
@@ -42,6 +43,7 @@ router.post('/register', async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 10);
     const safeRole = ['admin', 'personnel', 'driver', 'utilizer'].includes(role) ? role : 'personnel';
+    const companyId = await getDefaultCompanyId();
 
     const newUser = await User.create({
       fullName: fullName.trim(),
@@ -49,6 +51,7 @@ router.post('/register', async (req, res) => {
       email,
       password: hashed,
       role: safeRole,
+      companyId,
       phoneNumber: null,
     });
 

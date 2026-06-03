@@ -2,8 +2,14 @@ const router = require('express').Router();
 const axios = require('axios');
 const History = require('../models/mongo/History');
 const Container = require('../models/pg/Container');
+const User = require('../models/pg/User');
 const { getMlConfig, getMlRequestOptions } = require('../config/ml');
-const { hasValidCoordinates } = require('../utils/containerValidation');
+const {
+  hasValidCoordinates,
+  normalizeQrCode,
+  validateContainerPayload,
+} = require('../utils/containerValidation');
+const { authRole } = require('../middleware/authRole');
 
 function normalizeStatus(fullness, hasTelemetry) {
   if (!hasTelemetry) return 'UNKNOWN';
@@ -119,6 +125,63 @@ function toMlHistoryPoint(item) {
     fullness,
   };
 }
+
+// POST /api/bins — create container (admin, personnel)
+router.post('/', authRole(['admin', 'personnel']), async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.userId, { attributes: ['companyId'] });
+    if (!user?.companyId) {
+      return res.status(400).json({ error: 'User is not linked to a company' });
+    }
+
+    const payload = {
+      qrCode: normalizeQrCode(req.body.qrCode),
+      wasteType: req.body.wasteType,
+      location: req.body.location,
+      lat: req.body.lat,
+      lon: req.body.lon,
+      companyId: user.companyId,
+    };
+
+    const validationError = validateContainerPayload(payload);
+    if (validationError) return res.status(400).json({ error: validationError });
+
+    const container = await Container.create(payload);
+    res.status(201).json(container);
+  } catch (err) {
+    if (err.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ error: 'Container with this QR code already exists' });
+    }
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/bins/:id — remove container (admin, personnel)
+router.delete('/:id', authRole(['admin', 'personnel']), async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: 'Invalid container id' });
+    }
+
+    const user = await User.findByPk(req.user.userId, { attributes: ['companyId'] });
+    if (!user?.companyId) {
+      return res.status(400).json({ error: 'User is not linked to a company' });
+    }
+
+    const container = await Container.findOne({
+      where: { id, companyId: user.companyId },
+    });
+    if (!container) {
+      return res.status(404).json({ error: 'Container not found' });
+    }
+
+    await container.destroy();
+    res.json({ ok: true, id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // GET /api/bins - map-ready container metadata with latest telemetry.
 router.get('/', async (req, res) => {

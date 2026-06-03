@@ -12,6 +12,12 @@ const Utilizer = sequelize.define('Utilizer', {
     allowNull: false,
     references: { model: 'users', key: 'id' },
   },
+  stationId: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    allowNull: false,
+    unique: true,
+  },
   // Station info
   stationName:    { type: DataTypes.STRING(255), allowNull: false },
   stationAddress: { type: DataTypes.STRING(500), allowNull: false },

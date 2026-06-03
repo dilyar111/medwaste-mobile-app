@@ -91,7 +91,7 @@ function emitTaskToDriver(userId, task) {
 
 function emitTaskUpdate(task) {
   if (!io) return;
-  io.to('role:admin').emit('task:updated', task);
+  io.to('role:admin').to('role:utilizer').emit('task:updated', task);
 }
 
 function emitRoutePoint(routeId, payload) {

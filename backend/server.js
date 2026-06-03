@@ -19,11 +19,13 @@ const {
 // The models call sequelize.define() at module load time; requiring them
 // when sequelize is null crashes the process before any env-flag check runs.
 if (process.env.POSTGRES_URI) {
+  require('./models/pg/Company');
   require('./models/pg/User');
   require('./models/pg/Driver');
   require('./models/pg/Task');
   require('./models/pg/Container');
   require('./models/pg/Utilizer');
+  require('./models/pg/associations');
 }
 
 const app = express();
@@ -57,10 +59,13 @@ initSocket(server, { allowedOrigins });
 app.get('/', (req, res) => res.send('MedWaste API is running...'));
 
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/users', require('./routes/users'));
+app.use('/api/companies', require('./routes/companies'));
 app.use('/api/telemetry', require('./routes/telemetry'));
 app.use('/api/bins', require('./routes/bins'));
 app.use('/api/alerts', require('./routes/alerts'));
 app.use('/api/drivers', require('./routes/drivers'));
+app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/utilizers', require('./routes/utilizers'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/admin', require('./routes/admin'));
@@ -68,6 +73,7 @@ app.use('/api/utilizer', require('./routes/utilizer'));
 app.use('/api/profile', require('./routes/profile'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/route-history', require('./routes/routeHistory'));
+app.use('/api/contact', require('./routes/contact'));
 
 const PORT = Number(process.env.PORT) || 5000;
 const HOST = process.env.HOST || '0.0.0.0';

@@ -9,6 +9,11 @@ const Task = sequelize.define('Task', {
     primaryKey: true,
     autoIncrement: true,
   },
+  companyId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: { model: 'companies', key: 'id' },
+  },
   containerId: {
     type: DataTypes.STRING(50),
     allowNull: false,
@@ -24,15 +29,28 @@ const Task = sequelize.define('Task', {
     references: { model: 'users', key: 'id' },
   },
   status: {
-    // matches existing task_status enum in PostgreSQL
-    type: DataTypes.ENUM('assigned', 'in_transit', 'at_utilization', 'completed', 'cancelled'),
+    type: DataTypes.ENUM(
+      'assigned',
+      'in_transit',
+      'at_utilization',
+      'completed',
+      'cancelled',
+      'failed_incident',
+    ),
     defaultValue: 'assigned',
+  },
+  incidentReason: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
   },
   assignedAt:  { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   completedAt: { type: DataTypes.DATE, allowNull: true },
 }, {
   tableName:  'tasks',
   timestamps: false,
+  indexes: [
+    { fields: ['companyId'] },
+  ],
 });
 
 Task.belongsTo(Container, { foreignKey: 'containerId', targetKey: 'qrCode', as: 'container' });

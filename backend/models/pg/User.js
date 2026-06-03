@@ -26,9 +26,19 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING(255),
     allowNull: true,
   },
+  companyId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: { model: 'companies', key: 'id' },
+  },
+  /** FK to utilizers.stationId — set for utilizer-role users */
+  stationId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: { model: 'utilizers', key: 'stationId' },
+  },
   role: {
-    type: DataTypes.ENUM,
-    values: ['admin', 'personnel', 'driver', 'utilizer'],
+    type: DataTypes.ENUM('admin', 'personnel', 'driver', 'utilizer'),
     allowNull: false,
     defaultValue: 'personnel',
   },
