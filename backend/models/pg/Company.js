@@ -12,12 +12,14 @@ const Company = sequelize.define('Company', {
     allowNull: false,
   },
   subscriptionPlan: {
-    type: DataTypes.ENUM({
-      values: ['free', 'premium'],
-      name: 'subscription_plan_enum',
-    }),
+    // Backed by the PostgreSQL subscription_plan_enum type from migrations.
+    // Keep Sequelize from generating a duplicate enum_companies_subscriptionPlan type.
+    type: DataTypes.STRING(20),
     allowNull: false,
     defaultValue: 'free',
+    validate: {
+      isIn: [['free', 'premium']],
+    },
   },
   paymentStatus: {
     type: DataTypes.STRING(50),
