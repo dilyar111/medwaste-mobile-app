@@ -3,9 +3,10 @@ import { Link, useLocation } from "react-router-dom";
 import {
   BarChart3,
   Bell,
+  Building2,
   Grid3X3,
   LogOut,
-  Map,
+  Mail,
   Menu,
   Recycle,
   Route,
@@ -233,7 +234,6 @@ const NAV = {
     { section: "Main", items: [
       { to: "/dashboard",            label: "Dashboard",  icon: "grid" },
       { to: "/dashboard/containers", label: "Containers", icon: "trash", badge: "5" },
-      { to: "/dashboard/map",        label: "Map",        icon: "map"  },
       { to: "/dashboard/alerts",     label: "Alerts",     icon: "bell" },
     ]},
     { section: "Management", items: [
@@ -241,10 +241,10 @@ const NAV = {
       { to: "/dashboard/routes-history", label: "Route History", icon: "route" },
     ]},
     { section: "Administration", items: [
-      { to: "/dashboard/approvals",      label: "Approvals",      icon: "shield" },
-      { to: "/dashboard/admin/dispatch", label: "Dispatch",        icon: "truck"  },
-      { to: "/dashboard/driver-approvals",  label: "Driver Approvals",icon: "users" },
-      { to: "/dashboard/admin/users",    label: "Users & Roles",   icon: "users"  },
+      { to: "/dashboard/admin/organizations", label: "Organizations",   icon: "building" },
+      { to: "/dashboard/admin/inquiries",    label: "Inquiries",       icon: "mail" },
+      { to: "/dashboard/approvals",          label: "Approvals",       icon: "shield" },
+      { to: "/dashboard/admin/users",        label: "Users & Roles",   icon: "users"  },
     ]},
     { section: "Account", items: [
       { to: "/dashboard/profile", label: "Profile", icon: "user" },
@@ -255,7 +255,6 @@ const NAV = {
     { section: "Main", items: [
       { to: "/dashboard",            label: "Dashboard",  icon: "grid"  },
       { to: "/dashboard/containers", label: "Containers", icon: "trash" },
-      { to: "/dashboard/map",        label: "Map",        icon: "map"   },
       { to: "/dashboard/alerts",     label: "Alerts",     icon: "bell"  },
     ]},
     { section: "Management", items: [
@@ -283,7 +282,8 @@ const NAV = {
 
   utilizer: [
     { section: "Utilizer", items: [
-      { to: "/dashboard/utilizer", label: "Station", icon: "grid" },
+      { to: "/dashboard/utilizer/inbound", label: "Inbound Logistics", icon: "truck" },
+      { to: "/dashboard/utilizer", label: "Disposal Archive", icon: "grid" },
     ]},
     { section: "Account", items: [
       { to: "/dashboard/profile", label: "Profile", icon: "user" },
@@ -295,7 +295,6 @@ function SbIcon({ name, className = "sb-icon" }) {
   const icons = {
     grid: Grid3X3,
     trash: Trash2,
-    map: Map,
     bell: Bell,
     chart: BarChart3,
     route: Route,
@@ -303,6 +302,8 @@ function SbIcon({ name, className = "sb-icon" }) {
     users: Users,
     user: User,
     shield: ShieldCheck,
+    building: Building2,
+    mail: Mail,
     logout: LogOut,
     recycle: Recycle,
     menu: Menu,

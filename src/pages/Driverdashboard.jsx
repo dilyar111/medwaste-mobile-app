@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  AlertTriangle,
   Bell,
   CircleCheck,
   Clock,
@@ -9,8 +10,9 @@ import {
   Route,
   Truck,
   User,
+  X,
 } from "lucide-react";
-import api from "../services/api";
+import api, { reportIncident, toggleShift } from "../services/api";
 import { useSocket } from "../hooks/useSocket";
 
 const css = `
@@ -90,6 +92,73 @@ const css = `
 
   .dd-avail-toggle {
     margin-left: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .dd-shift-label {
+    color: var(--dd-ink);
+    font-size: .82rem;
+    font-weight: 900;
+    line-height: 1.2;
+  }
+
+  .dd-shift-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .dd-switch {
+    position: relative;
+    display: inline-flex;
+    width: 52px;
+    height: 30px;
+    flex: 0 0 52px;
+    cursor: pointer;
+  }
+
+  .dd-switch input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .dd-switch-slider {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: #d8dce6;
+    transition: background .2s ease;
+  }
+
+  .dd-switch-slider::before {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(16, 19, 24, .18);
+    transition: transform .2s ease;
+  }
+
+  .dd-switch input:checked + .dd-switch-slider {
+    background: var(--dd-teal);
+  }
+
+  .dd-switch input:checked + .dd-switch-slider::before {
+    transform: translateX(22px);
+  }
+
+  .dd-switch input:disabled + .dd-switch-slider {
+    opacity: .55;
+    cursor: not-allowed;
   }
 
   .dd-availability-btn {
@@ -389,7 +458,101 @@ const css = `
   .dd-btn-green:hover { background: var(--dd-teal-dark); }
   .dd-btn-ghost { border: 1px solid var(--dd-line); background: #fff; color: var(--dd-muted); }
   .dd-btn-ghost:hover { background: #f8f8fb; }
+  .dd-btn-danger {
+    border: 1px solid rgba(224, 93, 99, .24);
+    background: #fff5f5;
+    color: #c03943;
+  }
+  .dd-btn-danger:hover { background: #ffecec; }
   .dd-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+  .dd-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(16, 19, 24, .42);
+  }
+
+  .dd-modal {
+    width: min(100%, 420px);
+    padding: 22px;
+    border: 1px solid rgba(231, 231, 239, .95);
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 18px 48px rgba(16, 19, 24, .18);
+  }
+
+  .dd-modal-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .dd-modal-head h3 {
+    margin: 0 0 4px;
+    font-size: 1.05rem;
+    font-weight: 900;
+  }
+
+  .dd-modal-head p {
+    margin: 0;
+    color: var(--dd-muted);
+    font-size: .82rem;
+    line-height: 1.45;
+  }
+
+  .dd-modal-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 10px;
+    background: #f4f3f8;
+    color: var(--dd-muted);
+    cursor: pointer;
+  }
+
+  .dd-reason-list {
+    display: grid;
+    gap: 8px;
+    margin: 16px 0 18px;
+  }
+
+  .dd-reason-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--dd-line);
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: .88rem;
+    font-weight: 700;
+    transition: border-color .2s ease, background .2s ease;
+  }
+
+  .dd-reason-option.selected {
+    border-color: rgba(224, 93, 99, .35);
+    background: #fff7f7;
+    color: #b4232a;
+  }
+
+  .dd-reason-option input { accent-color: #e05d63; }
+
+  .dd-modal-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .dd-modal-actions .dd-btn { flex: 1; margin-top: 0; }
 
   .dd-empty {
     padding: 48px 20px;
@@ -457,15 +620,24 @@ const css = `
 `;
 
 const STATUS_NEXT = {
-  assigned: { label: "Pick Up - Start Transit", next: "in_transit", btnClass: "dd-btn-primary" },
+  assigned: { label: "Pick Up — Start Transit", next: "in_transit", btnClass: "dd-btn-primary" },
+  in_transit: { label: "Deliver to Utilization Station", next: "at_utilization", btnClass: "dd-btn-primary" },
 };
 
 const STATUS_COLOR = {
   assigned: "#4f96ce",
   in_transit: "#f4a62a",
+  at_utilization: "#8b7bd8",
   completed: "#149d80",
   cancelled: "#e05d63",
+  failed_incident: "#e05d63",
 };
+
+const INCIDENT_REASONS = [
+  "Container Blocked",
+  "Container Broken",
+  "Road Closed",
+];
 
 function StatusIcon({ status }) {
   if (status === "completed") return <CircleCheck size={14} strokeWidth={2.5} aria-hidden="true" />;
@@ -477,6 +649,7 @@ function StatusIcon({ status }) {
 function statusLabel(status) {
   if (status === "assigned") return "Assigned";
   if (status === "in_transit") return "In Transit";
+  if (status === "at_utilization") return "Delivered";
   if (status === "completed") return "Completed";
   if (status === "cancelled") return "Cancelled";
   return status;
@@ -489,7 +662,11 @@ export default function DriverDashboard() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState({});
-  const [avail, setAvail] = useState(true);
+  const [avail, setAvail] = useState(false);
+  const [shiftLoading, setShiftLoading] = useState(false);
+  const [incidentTaskId, setIncidentTaskId] = useState(null);
+  const [incidentReason, setIncidentReason] = useState(INCIDENT_REASONS[0]);
+  const [incidentSubmitting, setIncidentSubmitting] = useState(false);
   const [toast, setToast] = useState("");
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
@@ -509,6 +686,9 @@ export default function DriverDashboard() {
   useEffect(() => {
     if (sessionStorage.getItem("mw_logged_in") !== "true") navigate("/");
     fetchTasks();
+    api.get("/api/auth/me")
+      .then((res) => setAvail(Boolean(res.data?.isAvailable)))
+      .catch(() => setAvail(false));
     const id = setInterval(fetchTasks, 15000);
     return () => clearInterval(id);
   }, []);
@@ -529,9 +709,13 @@ export default function DriverDashboard() {
           ? { ...t, status: nextStatus }
           : t
       ));
-      showToast(nextStatus === "in_transit"
-        ? "Status updated - you are now in transit!"
-        : "Task completed! Well done.");
+      showToast(
+        nextStatus === "in_transit"
+          ? "Pickup started — you are busy until delivery"
+          : nextStatus === "at_utilization"
+            ? "Delivered — you are available for new pickups"
+            : "Status updated"
+      );
     } catch (err) {
       showToast(err.response?.data?.error || "Failed to update");
     } finally {
@@ -539,13 +723,43 @@ export default function DriverDashboard() {
     }
   };
 
-  const handleAvailToggle = async () => {
+  const handleShiftToggle = async () => {
+    setShiftLoading(true);
     try {
-      await api.patch("/api/drivers/availability", { isAvailable: !avail });
-      setAvail(a => !a);
-      showToast(`Status: ${!avail ? "Available" : "Unavailable"}`);
-    } catch {
-      setAvail(a => !a);
+      const res = await toggleShift();
+      const next = Boolean(res.data?.isAvailable);
+      setAvail(next);
+      showToast(next ? "Shift started — you are available for tasks" : "Shift ended — auto-assign disabled");
+    } catch (err) {
+      showToast(err.response?.data?.error || "Failed to update shift status");
+    } finally {
+      setShiftLoading(false);
+    }
+  };
+
+  const openIncidentModal = (taskId) => {
+    setIncidentTaskId(taskId);
+    setIncidentReason(INCIDENT_REASONS[0]);
+  };
+
+  const closeIncidentModal = () => {
+    if (incidentSubmitting) return;
+    setIncidentTaskId(null);
+  };
+
+  const handleIncidentSubmit = async () => {
+    if (!incidentTaskId || !incidentReason) return;
+    setIncidentSubmitting(true);
+    try {
+      const res = await reportIncident(incidentTaskId, incidentReason);
+      setTasks(prev => prev.filter(t => (t.id || t._id) !== incidentTaskId));
+      if (res.data?.isAvailable) setAvail(true);
+      setIncidentTaskId(null);
+      showToast("Incident reported. Dispatcher has been notified.");
+    } catch (err) {
+      showToast(err.response?.data?.error || "Failed to report incident");
+    } finally {
+      setIncidentSubmitting(false);
     }
   };
 
@@ -567,14 +781,23 @@ export default function DriverDashboard() {
             </div>
           </div>
           <div className="dd-avail-toggle">
-            <button
-              className={`dd-availability-btn ${avail ? "available" : "unavailable"}`}
-              onClick={handleAvailToggle}
-              type="button"
-            >
-              <Activity size={15} strokeWidth={2.4} aria-hidden="true" />
-              {avail ? "Available" : "Unavailable"}
-            </button>
+            <div className="dd-shift-label">
+              {avail ? "End shift" : "Start shift"}
+            </div>
+            <div className="dd-shift-row">
+              <label className="dd-switch" aria-label={avail ? "End shift" : "Start shift"}>
+                <input
+                  type="checkbox"
+                  checked={avail}
+                  disabled={shiftLoading}
+                  onChange={handleShiftToggle}
+                />
+                <span className="dd-switch-slider" />
+              </label>
+              <span className={`dd-availability-btn ${avail ? "available" : "unavailable"}`} style={{ cursor: "default" }}>
+                {avail ? "On shift" : "Off shift"}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -707,6 +930,21 @@ export default function DriverDashboard() {
                       </button>
                     </>
                   )}
+
+                  {tab === "active" && ["assigned", "in_transit"].includes(task.status) && (
+                    <>
+                      <div className="dd-divider" />
+                      <button
+                        className="dd-btn dd-btn-danger"
+                        disabled={saving[id] || incidentSubmitting}
+                        onClick={() => openIncidentModal(id)}
+                        type="button"
+                      >
+                        <AlertTriangle size={17} strokeWidth={2.4} aria-hidden="true" />
+                        Report issue
+                      </button>
+                    </>
+                  )}
                 </div>
               );
             })}
@@ -715,6 +953,49 @@ export default function DriverDashboard() {
       </div>
 
       {toast && <div className="dd-toast">{toast}</div>}
+
+      {incidentTaskId && (
+        <div className="dd-modal-overlay" onClick={closeIncidentModal}>
+          <div className="dd-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+            <div className="dd-modal-head">
+              <div>
+                <h3>Report issue</h3>
+                <p>Select the reason you cannot collect the waste.</p>
+              </div>
+              <button className="dd-modal-close" onClick={closeIncidentModal} type="button" aria-label="Close">
+                <X size={18} strokeWidth={2.4} />
+              </button>
+            </div>
+
+            <div className="dd-reason-list">
+              {INCIDENT_REASONS.map((reason) => (
+                <label
+                  key={reason}
+                  className={`dd-reason-option ${incidentReason === reason ? "selected" : ""}`}
+                >
+                  <input
+                    type="radio"
+                    name="incident-reason"
+                    value={reason}
+                    checked={incidentReason === reason}
+                    onChange={() => setIncidentReason(reason)}
+                  />
+                  {reason}
+                </label>
+              ))}
+            </div>
+
+            <div className="dd-modal-actions">
+              <button className="dd-btn dd-btn-ghost" onClick={closeIncidentModal} disabled={incidentSubmitting} type="button">
+                Cancel
+              </button>
+              <button className="dd-btn dd-btn-danger" onClick={handleIncidentSubmit} disabled={incidentSubmitting} type="button">
+                {incidentSubmitting ? "Sending..." : "Submit"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

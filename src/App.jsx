@@ -15,11 +15,13 @@ import DriverRegistration from "./pages/DriverRegistration";
 import RouteHistory       from "./pages/RouteHistory";
 import Profile            from "./pages/Profile";
 import AdminApprovals     from "./pages/Adminapprovals.jsx";
-import AdminDispatch      from "./pages/AdminDispatch";
-import UtilizerPage       from "./pages/Utilizerpage.jsx";
-import UtilizerRegistration from "./pages/Utilizerregistration.jsx";
-import DriverDashboard from "./pages/Driverdashboard";
 import AdminUsers         from "./pages/AdminUsers";
+import AdminOrganizations from "./pages/AdminOrganizations";
+import AdminInquiries from "./pages/AdminInquiries";
+import UtilizerPage       from "./pages/Utilizerpage.jsx";
+import UtilizerInbound    from "./pages/UtilizerInbound.jsx";
+import UtilizerRegistration from "./pages/Utilizerregistration.jsx";
+import DriverDashboard    from "./pages/Driverdashboard";
 
 // Components
 import Layout       from "./components/Layout";
@@ -86,23 +88,39 @@ function App() {
             }
           />
           <Route
-            path="admin/dispatch"
+            path="admin/organizations"
             element={
               <PrivateRoute requiredRole="admin">
-                <AdminDispatch />
+                <AdminOrganizations />
               </PrivateRoute>
             }
           />
-          <Route 
-            path="admin/users" 
+          <Route
+            path="admin/inquiries"
+            element={
+              <PrivateRoute requiredRole="admin">
+                <AdminInquiries />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="admin/users"
             element={
               <PrivateRoute requiredRole="admin">
                 <AdminUsers />
               </PrivateRoute>
-            }  
+            }
           />
 
           {/* ── Utilizer only ───────────────────────────── */}
+          <Route
+            path="utilizer/inbound"
+            element={
+              <PrivateRoute requiredRole="utilizer">
+                <UtilizerInbound />
+              </PrivateRoute>
+            }
+          />
           <Route
             path="utilizer"
             element={

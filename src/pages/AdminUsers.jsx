@@ -4,15 +4,17 @@ import {
   BadgeCheck,
   CircleCheck,
   Mail,
+  Plus,
   RefreshCw,
   Search,
   Settings,
   ShieldCheck,
   User,
   UserCog,
+  UserPlus,
   Users,
 } from "lucide-react";
-import { getUsers, updateUserRole } from "../services/api";
+import { createAdminUser, getCompanies, getUsers, updateUserRole } from "../services/api";
 
 const css = `
   .au-root {
@@ -376,6 +378,70 @@ const css = `
     text-align: center;
   }
 
+  .au-create-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 42px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--au-teal);
+    color: #fff;
+    cursor: pointer;
+    font: inherit;
+    font-size: .86rem;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .au-create-panel {
+    margin-bottom: 16px;
+    padding: 18px 20px;
+    border: 1px solid rgba(231,231,239,.92);
+    border-radius: 18px;
+    background: rgba(255,255,255,.94);
+    box-shadow: var(--au-shadow);
+  }
+
+  .au-create-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .au-create-grid label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--au-muted);
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+
+  .au-create-grid input,
+  .au-create-grid select {
+    width: 100%;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid rgba(231,231,239,.92);
+    border-radius: 12px;
+    font: inherit;
+    font-size: .84rem;
+  }
+
+  .au-company-tag {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #f3f4f8;
+    color: #5b6472;
+    font-size: .7rem;
+    font-weight: 800;
+  }
+
   .au-toast {
     position: fixed;
     right: 24px;
@@ -535,14 +601,28 @@ function RoleIcon({ role, size = 14 }) {
   return <Icon size={size} strokeWidth={2.35} aria-hidden="true" />;
 }
 
+const EMPTY_USER = {
+  fullName: "",
+  username: "",
+  email: "",
+  password: "",
+  role: "personnel",
+  companyId: "",
+};
+
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [pendingRole, setPendingRole] = useState({});
+  const [pendingCompany, setPendingCompany] = useState({});
   const [saving, setSaving] = useState({});
   const [toast, setToast] = useState("");
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState(EMPTY_USER);
+  const [creating, setCreating] = useState(false);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
 
@@ -550,33 +630,87 @@ export default function AdminUsers() {
     try {
       const res = await getUsers();
       setUsers(res.data);
-    } catch (err) {
+    } catch {
       showToast("Failed to load users");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+  const fetchCompanies = async () => {
+    try {
+      const res = await getCompanies();
+      const list = Array.isArray(res.data) ? res.data : [];
+      setCompanies(list);
+      if (list.length > 0) {
+        setCreateForm((f) => (f.companyId ? f : { ...f, companyId: list[0].id }));
+      }
+    } catch {
+      showToast("Failed to load organizations");
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+    fetchCompanies();
+  }, []);
 
   const handleRoleChange = (userId, newRole) => {
     setPendingRole(p => ({ ...p, [userId]: newRole }));
   };
 
+  const handleCompanyChange = (userId, companyId) => {
+    setPendingCompany(p => ({ ...p, [userId]: companyId }));
+  };
+
   const handleSave = async (userId) => {
     const newRole = pendingRole[userId];
-    if (!newRole) return;
+    const newCompanyId = pendingCompany[userId];
+    const user = users.find(u => u.id === userId);
+    const roleChanged = newRole && newRole !== user?.role;
+    const companyChanged = newCompanyId && newCompanyId !== user?.companyId;
+
+    if (!roleChanged && !companyChanged) return;
 
     setSaving(s => ({ ...s, [userId]: true }));
     try {
-      await updateUserRole(userId, newRole);
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+      const payload = {};
+      if (roleChanged) payload.role = newRole;
+      if (companyChanged) payload.companyId = newCompanyId;
+      await updateUserRole(userId, payload);
+      setUsers(prev => prev.map(u => {
+        if (u.id !== userId) return u;
+        const company = companies.find(c => c.id === (newCompanyId || u.companyId));
+        return {
+          ...u,
+          role: roleChanged ? newRole : u.role,
+          companyId: companyChanged ? newCompanyId : u.companyId,
+          company: company ? { id: company.id, name: company.name, subscriptionPlan: company.subscriptionPlan } : u.company,
+        };
+      }));
       setPendingRole(p => { const copy = { ...p }; delete copy[userId]; return copy; });
-      showToast(`Role updated to ${newRole}`);
+      setPendingCompany(p => { const copy = { ...p }; delete copy[userId]; return copy; });
+      showToast("User updated");
     } catch (err) {
-      showToast(err.response?.data?.error || "Failed to update role");
+      showToast(err.response?.data?.error || "Failed to save changes");
     } finally {
       setSaving(s => ({ ...s, [userId]: false }));
+    }
+  };
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    setCreating(true);
+    try {
+      const res = await createAdminUser(createForm);
+      setUsers(prev => [res.data, ...prev]);
+      setCreateForm({ ...EMPTY_USER, companyId: companies[0]?.id || "" });
+      setShowCreate(false);
+      showToast("User created");
+    } catch (err) {
+      showToast(err.response?.data?.error || "Failed to create user");
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -597,10 +731,59 @@ export default function AdminUsers() {
     <>
       <style>{css}</style>
       <div className="au-root">
-        <div className="au-header">
-          <h1>Users & Roles</h1>
-          <p>Manage user accounts and assign roles across the system</p>
+        <div className="au-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
+          <div>
+            <h1>Users & Roles</h1>
+            <p>Create accounts linked to an organization with a fixed role</p>
+          </div>
+          <button className="au-create-btn" type="button" onClick={() => setShowCreate(s => !s)}>
+            <UserPlus size={18} />
+            {showCreate ? "Hide form" : "Create user"}
+          </button>
         </div>
+
+        {showCreate && (
+          <form className="au-create-panel" onSubmit={handleCreateUser}>
+            <div className="au-create-grid">
+              <div>
+                <label htmlFor="cu-name">Full name</label>
+                <input id="cu-name" required value={createForm.fullName} onChange={e => setCreateForm(f => ({ ...f, fullName: e.target.value }))} />
+              </div>
+              <div>
+                <label htmlFor="cu-username">Username</label>
+                <input id="cu-username" required value={createForm.username} onChange={e => setCreateForm(f => ({ ...f, username: e.target.value }))} />
+              </div>
+              <div>
+                <label htmlFor="cu-email">Email</label>
+                <input id="cu-email" type="email" required value={createForm.email} onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))} />
+              </div>
+              <div>
+                <label htmlFor="cu-password">Password</label>
+                <input id="cu-password" type="password" required minLength={6} value={createForm.password} onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))} />
+              </div>
+              <div>
+                <label htmlFor="cu-role">Role</label>
+                <select id="cu-role" required value={createForm.role} onChange={e => setCreateForm(f => ({ ...f, role: e.target.value }))}>
+                  {ROLES.map(r => (
+                    <option key={r} value={r}>{ROLE_META[r].label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="cu-company">Organization</label>
+                <select id="cu-company" required value={createForm.companyId} onChange={e => setCreateForm(f => ({ ...f, companyId: e.target.value }))}>
+                  {companies.map(c => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.subscriptionPlan})</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <button className="au-create-btn" type="submit" disabled={creating || companies.length === 0}>
+              <Plus size={16} />
+              {creating ? "Creating..." : "Create account"}
+            </button>
+          </form>
+        )}
 
         <div className="au-stats">
           {ROLES.map(r => (
@@ -667,18 +850,23 @@ export default function AdminUsers() {
               <thead>
                 <tr>
                   <th>User</th>
+                  <th>Organization</th>
                   <th>Current Role</th>
                   <th>Available</th>
                   <th>Joined</th>
                   <th>Change Role</th>
+                  <th>Company</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(u => {
                   const currentRole = u.role;
-                  const selected = pendingRole[u.id] ?? currentRole;
-                  const changed = pendingRole[u.id] && pendingRole[u.id] !== currentRole;
+                  const selectedRole = pendingRole[u.id] ?? currentRole;
+                  const selectedCompany = pendingCompany[u.id] ?? u.companyId ?? "";
+                  const roleChanged = pendingRole[u.id] && pendingRole[u.id] !== currentRole;
+                  const companyChanged = pendingCompany[u.id] && pendingCompany[u.id] !== u.companyId;
+                  const changed = roleChanged || companyChanged;
 
                   return (
                     <tr key={u.id}>
@@ -695,6 +883,10 @@ export default function AdminUsers() {
                             </div>
                           </div>
                         </div>
+                      </td>
+
+                      <td data-label="Organization">
+                        <span className="au-company-tag">{u.company?.name || "—"}</span>
                       </td>
 
                       <td data-label="Current Role">
@@ -718,13 +910,25 @@ export default function AdminUsers() {
                       <td data-label="Change Role">
                         <select
                           className="au-role-select"
-                          value={selected}
+                          value={selectedRole}
                           onChange={e => handleRoleChange(u.id, e.target.value)}
                         >
                           {ROLES.map(r => (
                             <option key={r} value={r}>
                               {r}
                             </option>
+                          ))}
+                        </select>
+                      </td>
+
+                      <td data-label="Company">
+                        <select
+                          className="au-role-select"
+                          value={selectedCompany}
+                          onChange={e => handleCompanyChange(u.id, e.target.value)}
+                        >
+                          {companies.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
                           ))}
                         </select>
                       </td>

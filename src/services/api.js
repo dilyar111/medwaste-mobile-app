@@ -73,21 +73,35 @@ export const markRead         = (id) => api.patch(`/api/notifications/${id}/read
 // ── Drivers ───────────────────────────────────────────────────
 export const registerDriver = (data) => api.post("/api/drivers/register", data);
 export const getDriverTasks = ()     => api.get("/api/drivers/tasks");
+export const toggleShift    = ()     => api.patch("/api/users/toggle-shift");
+export const reportIncident = (taskId, reason) =>
+  api.patch(`/api/tasks/${taskId}/incident`, { reason });
 
 // ── Admin ─────────────────────────────────────────────────────
 export const getUsers           = ()                      => api.get("/api/admin/users");
-export const updateUserRole     = (id, role)              => api.patch(`/api/admin/users/${id}/role`, { role });
+export const createAdminUser    = (data)                  => api.post("/api/admin/users", data);
+export const updateUserRole     = (id, payload)           => api.patch(`/api/admin/users/${id}/role`, payload);
 export const getPendingDrivers  = ()                      => api.get("/api/admin/drivers/pending");
 export const getApprovedDrivers = ()                      => api.get("/api/admin/drivers/approved");
 export const updateDriverStatus = (id, status)            => api.patch(`/api/admin/drivers/${id}/status`, { status });
 export const getAllTasks         = ()                      => api.get("/api/admin/tasks/all");
 export const assignTask         = (driverId, containerId) => api.post("/api/admin/assign-task", { driverId, containerId });
+export const getAvailableDrivers = ()                    => api.get("/api/drivers/available");
+
+// ── B2B Companies ─────────────────────────────────────────────
+export const getCompanies    = ()           => api.get("/api/companies");
+export const createCompany   = (data)       => api.post("/api/companies", data);
+export const updateCompany   = (id, data)   => api.patch(`/api/companies/${id}`, data);
+
+// ── Contact inquiries (landing) ───────────────────────────────
+export const submitContactInquiry = (data) => api.post('/api/contact', data);
+export const getContactInquiries  = (params) => api.get('/api/contact', { params });
+export const updateContactInquiry = (id, status) => api.patch(`/api/contact/${id}`, { status });
 
 // ── Utilizer ──────────────────────────────────────────────────
-export const getIncomingTasks   = ()         => api.get("/api/utilizer/incoming-tasks");
-export const acceptWaste        = (id)       => api.patch(`/api/utilizer/accept-waste/${id}`);
-export const completeProcess    = (id, data) => api.patch(`/api/utilizer/complete-process/${id}`, data);
 export const getUtilizerHistory = ()         => api.get("/api/utilizer/history");
+export const getInboundTasks    = ()         => api.get("/api/tasks/inbound");
+export const completeTask       = (id, data) => api.post(`/api/tasks/${id}/complete`, data);
 
 // Reports
 export const getReports = (params = {}) => api.get("/api/reports", { params });

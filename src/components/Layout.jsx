@@ -15,8 +15,10 @@ const pageMeta = [
   { match: (path) => path.startsWith("/dashboard/driver-registration"), title: "Driver Registration", subtitle: "Register as a driver for medical waste collection" },
   { match: (path) => path.startsWith("/dashboard/utilizer-registration"), title: "Utilizer Registration", subtitle: "Register your station for medical waste processing" },
   { match: (path) => path.startsWith("/dashboard/driver-dashboard"), title: "Driver Dashboard", subtitle: "Assigned pickups and collection tasks" },
-  { match: (path) => path.startsWith("/dashboard/utilizer"), title: "Utilizer Station", subtitle: "Incoming waste processing tasks" },
-  { match: (path) => path.startsWith("/dashboard/admin/dispatch"), title: "Dispatch", subtitle: "Assign and monitor collection tasks" },
+  { match: (path) => path.startsWith("/dashboard/utilizer/inbound"), title: "Inbound Logistics", subtitle: "Vehicles heading to your utilization station" },
+  { match: (path) => path.startsWith("/dashboard/utilizer"), title: "Disposal Archive", subtitle: "Completed disposal records with weight data" },
+  { match: (path) => path.startsWith("/dashboard/admin/organizations"), title: "B2B Organizations", subtitle: "Manage client companies and subscription plans" },
+  { match: (path) => path.startsWith("/dashboard/admin/inquiries"), title: "Contact inquiries", subtitle: "Landing page messages and follow-up status" },
   { match: (path) => path.startsWith("/dashboard/admin/users"), title: "Users & Roles", subtitle: "Manage users and access levels" },
   { match: (path) => path.startsWith("/dashboard/approvals"), title: "Approvals", subtitle: "Review pending access requests" },
   { match: (path) => path.startsWith("/dashboard/driver-approvals"), title: "Driver Approvals", subtitle: "Review pending driver requests" },
@@ -52,8 +54,8 @@ const Layout = () => {
           if (res.data.username) sessionStorage.setItem('mw_username', res.data.username);
 
           const routes = {
-            admin:     "/dashboard/admin/dispatch",
-            utilizer:  "/dashboard/utilizer",
+            admin:     "/dashboard/admin/organizations",
+            utilizer:  "/dashboard/utilizer/inbound",
             driver:    "/dashboard/driver-dashboard",
             personnel: "/dashboard",
           };

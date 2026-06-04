@@ -636,7 +636,7 @@ export default function UtilizerRegistration() {
                 <p>
                   Your station <strong>{existing.stationName}</strong> is approved and active in the system.
                 </p>
-                <button onClick={() => navigate("/dashboard/utilizer")} className="ur-status-btn">
+                <button onClick={() => navigate("/dashboard/utilizer/inbound")} className="ur-status-btn">
                   Go to Station Dashboard
                   <ArrowRight />
                 </button>

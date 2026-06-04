@@ -12,8 +12,8 @@ const Login = () => {
 
   const redirectForRole = (role) => {
     const routes = {
-      admin: "/dashboard/admin/dispatch",
-      utilizer: "/dashboard/utilizer",
+      admin: "/dashboard/admin/organizations",
+      utilizer: "/dashboard/utilizer/inbound",
       driver: "/dashboard/routes-history",
       personnel: "/dashboard",
     };

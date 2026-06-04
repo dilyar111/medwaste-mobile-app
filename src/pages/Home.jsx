@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Activity,
@@ -15,7 +15,6 @@ import {
   HeartPulse,
   Hospital,
   House,
-  LayoutList,
   LogIn,
   MapPin,
   PackageCheck,
@@ -24,7 +23,12 @@ import {
   ShieldCheck,
   Star,
   Truck,
+  Users,
+  Crown,
+  Zap,
 } from 'lucide-react';
+import { submitContactInquiry } from '../services/api';
+import { isApiConfigured } from '../config/api';
 
 const serviceCards = [
   {
@@ -62,15 +66,80 @@ const stats = [
   { label: 'Active routes', value: '12' },
 ];
 
+const subscriptionPlans = [
+  {
+    id: 'free',
+    name: 'Free',
+    price: '$0',
+    period: 'per organization / month',
+    description: 'For smaller clinics starting digital waste tracking.',
+    icon: ShieldCheck,
+    highlighted: false,
+    features: [
+      'Up to 10 team members',
+      'Container monitoring & alerts',
+      'Map and list dashboard views',
+      'Basic reports and route history',
+      'Email support',
+    ],
+  },
+  {
+    id: 'premium',
+    name: 'Premium',
+    price: 'Custom',
+    period: 'tailored B2B billing',
+    description: 'For hospital networks and multi-site operators.',
+    icon: Crown,
+    highlighted: true,
+    features: [
+      'Unlimited users per organization',
+      'Manual dispatch & shift management',
+      'Inbound logistics for utilizers',
+      'Advanced analytics & exports',
+      'Priority onboarding & support',
+    ],
+  },
+];
+
 const bottomTabs = [
   { icon: House, label: 'Main', href: '#top', active: true },
   { icon: ClipboardCheck, label: 'About', href: '#about' },
   { icon: Star, label: 'Features', href: '#features' },
-  { icon: LayoutList, label: 'Workflow', href: '#workflow' },
-  { icon: Ellipsis, label: 'More', href: '#contact' },
+  { icon: Crown, label: 'Plans', href: '#subscriptions' },
+  { icon: Ellipsis, label: 'Contact', href: '#contact' },
 ];
 
 const Home = () => {
+  const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
+  const [contactSubmitting, setContactSubmitting] = useState(false);
+  const [contactFeedback, setContactFeedback] = useState(null);
+
+  const handleContactSubmit = async (event) => {
+    event.preventDefault();
+    if (!isApiConfigured) {
+      setContactFeedback({ type: 'error', text: 'API is not configured. Set VITE_API_URL and rebuild.' });
+      return;
+    }
+
+    setContactSubmitting(true);
+    setContactFeedback(null);
+    try {
+      const res = await submitContactInquiry(contactForm);
+      setContactFeedback({
+        type: 'success',
+        text: res.data?.message || 'Thank you. We will get back to you soon.',
+      });
+      setContactForm({ name: '', email: '', message: '' });
+    } catch (err) {
+      setContactFeedback({
+        type: 'error',
+        text: err.response?.data?.error || err.message || 'Failed to send message. Try again later.',
+      });
+    } finally {
+      setContactSubmitting(false);
+    }
+  };
+
   return (
     <div id="top" className="landing-page home-dumamed">
       <style>{`
@@ -532,6 +601,134 @@ const Home = () => {
           line-height: 1.35;
         }
 
+        .home-dumamed .dm-pricing-grid {
+          display: grid;
+          gap: 14px;
+        }
+
+        .home-dumamed .dm-plan-card {
+          display: grid;
+          gap: 14px;
+          padding: 20px;
+          border: 1px solid rgba(232, 231, 238, .9);
+          border-radius: 24px;
+          background: var(--dm-card);
+          box-shadow: var(--dm-shadow);
+        }
+
+        .home-dumamed .dm-plan-card.highlighted {
+          border-color: rgba(20, 157, 128, .28);
+          background:
+            linear-gradient(180deg, rgba(230, 246, 241, .72), #fff 38%);
+        }
+
+        .home-dumamed .dm-plan-top {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+        }
+
+        .home-dumamed .dm-plan-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 10px;
+          border-radius: 999px;
+          background: var(--dm-teal-soft);
+          color: var(--dm-teal-dark);
+          font-size: .72rem;
+          font-weight: 900;
+          letter-spacing: .04em;
+          text-transform: uppercase;
+        }
+
+        .home-dumamed .dm-plan-card.highlighted .dm-plan-badge {
+          background: #f2efff;
+          color: #6d58c8;
+        }
+
+        .home-dumamed .dm-plan-price {
+          color: var(--dm-ink);
+          font-size: clamp(1.8rem, 8vw, 2.2rem);
+          font-weight: 900;
+          line-height: 1;
+        }
+
+        .home-dumamed .dm-plan-period {
+          margin-top: 4px;
+          color: var(--dm-muted);
+          font-size: .76rem;
+          font-weight: 700;
+        }
+
+        .home-dumamed .dm-plan-desc {
+          color: var(--dm-muted);
+          font-size: .86rem;
+          line-height: 1.5;
+        }
+
+        .home-dumamed .dm-plan-features {
+          display: grid;
+          gap: 10px;
+          margin: 0;
+          padding: 0;
+          list-style: none;
+        }
+
+        .home-dumamed .dm-plan-features li {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          color: var(--dm-ink);
+          font-size: .82rem;
+          line-height: 1.4;
+        }
+
+        .home-dumamed .dm-plan-features svg {
+          flex: 0 0 auto;
+          margin-top: 1px;
+          color: var(--dm-teal);
+        }
+
+        .home-dumamed .dm-plan-card.highlighted .dm-plan-features svg {
+          color: #6d58c8;
+        }
+
+        .home-dumamed .dm-plan-cta {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          width: 100%;
+          min-height: 48px;
+          border-radius: 16px;
+          font-weight: 900;
+        }
+
+        .home-dumamed .dm-plan-cta.primary {
+          background: var(--dm-teal);
+          color: #fff;
+        }
+
+        .home-dumamed .dm-plan-cta.secondary {
+          border: 1px solid var(--dm-line);
+          background: #fff;
+          color: var(--dm-ink);
+        }
+
+        .home-dumamed .dm-plan-note {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          padding: 14px 16px;
+          border-radius: 18px;
+          background: var(--dm-yellow-soft);
+          color: #7a5d08;
+          font-size: .8rem;
+          line-height: 1.45;
+        }
+
         .home-dumamed .dm-contact-card {
           display: grid;
           gap: 16px;
@@ -586,7 +783,21 @@ const Home = () => {
           cursor: pointer;
         }
 
-        .home-dumamed .dm-bottom-tabs {
+        .home-dumamed .dm-submit:disabled {
+    opacity: .65;
+    cursor: not-allowed;
+  }
+
+  .home-dumamed .dm-form-note {
+    margin-top: 10px;
+    font-size: .82rem;
+    line-height: 1.45;
+  }
+
+  .home-dumamed .dm-form-note.success { color: #0d8069; font-weight: 700; }
+  .home-dumamed .dm-form-note.error { color: #c0392b; font-weight: 700; }
+
+  .home-dumamed .dm-bottom-tabs {
           position: sticky;
           z-index: 20;
           bottom: 0;
@@ -675,6 +886,10 @@ const Home = () => {
           .home-dumamed .dm-contact-card {
             grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
             align-items: start;
+          }
+
+          .home-dumamed .dm-pricing-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
         }
       `}</style>
@@ -781,6 +996,70 @@ const Home = () => {
           </div>
         </section>
 
+        <section id="subscriptions" className="dm-section" aria-labelledby="subscriptions-title">
+          <div className="dm-section-head">
+            <div>
+              <p className="dm-section-kicker">B2B SaaS</p>
+              <h2 id="subscriptions-title" className="dm-title">Subscription plans</h2>
+            </div>
+            <Users color="#149d80" size={24} strokeWidth={2.4} aria-hidden="true" />
+          </div>
+          <p className="dm-copy" style={{ marginBottom: 14 }}>
+            Each healthcare organization gets an isolated tenant with its own users, containers, and dispatch workflows.
+          </p>
+          <div className="dm-pricing-grid">
+            {subscriptionPlans.map((plan) => {
+              const PlanIcon = plan.icon;
+              return (
+                <article
+                  key={plan.id}
+                  className={`dm-plan-card${plan.highlighted ? ' highlighted' : ''}`}
+                >
+                  <div className="dm-plan-top">
+                    <span className="dm-plan-badge">
+                      <PlanIcon size={14} strokeWidth={2.4} aria-hidden="true" />
+                      {plan.name}
+                    </span>
+                    {plan.highlighted && (
+                      <span className="dm-plan-badge" style={{ background: '#fff7df', color: '#8a5a0a' }}>
+                        <Zap size={14} strokeWidth={2.4} aria-hidden="true" />
+                        Popular
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <div className="dm-plan-price">{plan.price}</div>
+                    <div className="dm-plan-period">{plan.period}</div>
+                  </div>
+                  <p className="dm-plan-desc">{plan.description}</p>
+                  <ul className="dm-plan-features">
+                    {plan.features.map((feature) => (
+                      <li key={feature}>
+                        <Check size={16} strokeWidth={2.5} aria-hidden="true" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    to="/register"
+                    className={`dm-plan-cta ${plan.highlighted ? 'primary' : 'secondary'}`}
+                  >
+                    {plan.id === 'premium' ? 'Contact sales' : 'Start free'}
+                    <ArrowRight size={17} strokeWidth={2.5} aria-hidden="true" />
+                  </Link>
+                </article>
+              );
+            })}
+          </div>
+          <div className="dm-plan-note" style={{ marginTop: 14 }}>
+            <ShieldCheck size={18} strokeWidth={2.3} aria-hidden="true" />
+            <span>
+              Platform admins manage organizations, subscription limits, and user accounts.
+              Dispatch teams work inside their company tenant on the personnel dashboard.
+            </span>
+          </div>
+        </section>
+
         <section id="workflow" className="dm-section" aria-labelledby="workflow-title">
           <div className="dm-section-head">
             <div>
@@ -823,14 +1102,39 @@ const Home = () => {
               <h2 id="contact-title" className="dm-title">Ready to modernize your facility?</h2>
               <p className="dm-copy">Send a message and keep the existing workflow intact while improving visibility.</p>
             </div>
-            <form onSubmit={(event) => event.preventDefault()}>
-              <input type="text" placeholder="Your name" required />
-              <input type="email" placeholder="Your email" required />
-              <textarea placeholder="Your message" rows="4" required />
-              <button type="submit" className="dm-submit">
-                Send message
+            <form onSubmit={handleContactSubmit}>
+              <input
+                type="text"
+                placeholder="Your name"
+                required
+                minLength={2}
+                value={contactForm.name}
+                onChange={(e) => setContactForm((f) => ({ ...f, name: e.target.value }))}
+              />
+              <input
+                type="email"
+                placeholder="Your email"
+                required
+                value={contactForm.email}
+                onChange={(e) => setContactForm((f) => ({ ...f, email: e.target.value }))}
+              />
+              <textarea
+                placeholder="Your message"
+                rows="4"
+                required
+                minLength={10}
+                value={contactForm.message}
+                onChange={(e) => setContactForm((f) => ({ ...f, message: e.target.value }))}
+              />
+              <button type="submit" className="dm-submit" disabled={contactSubmitting}>
+                {contactSubmitting ? 'Sending...' : 'Send message'}
                 <ArrowRight size={18} strokeWidth={2.5} />
               </button>
+              {contactFeedback && (
+                <p className={`dm-form-note ${contactFeedback.type}`} role="status">
+                  {contactFeedback.text}
+                </p>
+              )}
             </form>
           </div>
         </section>

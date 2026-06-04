@@ -14,7 +14,7 @@ import {
   Truck,
   UserCheck,
 } from "lucide-react";
-import { getAlerts, getApprovedDrivers, getAllTasks, assignTask } from "../services/api";
+import { getAlerts, getAvailableDrivers, getAllTasks, assignTask } from "../services/api";
 import { useSocket } from "../hooks/useSocket";
 
 const css = `
@@ -439,7 +439,7 @@ export default function AdminDispatch() {
     try {
       const [alertsRes, driversRes, tasksRes] = await Promise.all([
         getAlerts(),
-        getApprovedDrivers(),
+        getAvailableDrivers(),
         getAllTasks(),
       ]);
       setAlerts(alertsRes.data.filter(a => a.severity === "critical" && !a.resolved));
@@ -559,10 +559,10 @@ export default function AdminDispatch() {
                           <option value="" disabled>Choose Driver</option>
                           {drivers.map((d) => {
                             const driverId = d.id ?? d._id;
-                            const driverEmail = d.user?.email || d.userId?.email || `driver-${driverId}`;
+                            const label = d.fullName || d.user?.email || d.email || d.userId?.email || `driver-${driverId}`;
                             return (
                               <option key={driverId} value={driverId}>
-                                {driverEmail} - {d.plateNumber || "No plate"}
+                                {label}{d.plateNumber ? ` - ${d.plateNumber}` : ""}
                               </option>
                             );
                           })}

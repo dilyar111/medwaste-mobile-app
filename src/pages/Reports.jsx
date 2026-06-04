@@ -16,7 +16,7 @@ import {
   Scale,
   Settings2,
 } from "lucide-react";
-import { getReports } from "../services/api";
+import { exportReports, getReports } from "../services/api";
 
 const emptyOverview = {
   totalContainers: 0,
@@ -706,12 +706,19 @@ const css = `
   }
 `;
 
+function formatReportDate(value) {
+  if (!value) return "—";
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
+}
+
 function Reports() {
-  const [reportType, setReportType]   = useState("overview");
+  const [reportType, setReportType]   = useState("containers");
   const [aggregation, setAggregation] = useState("month");
   const [period, setPeriod]           = useState("");
   const [overview, setOverview]       = useState(emptyOverview);
   const [departments, setDepartments] = useState([]);
+  const [containerLogistics, setContainerLogistics] = useState([]);
   const [barData, setBarData]         = useState([]);
   const [wasteTypes, setWasteTypes]   = useState([]);
   const [loading, setLoading]         = useState(true);
@@ -815,14 +822,18 @@ function Reports() {
 
       setOverview(nextOverview);
       setDepartments(nextDepartments);
+      setContainerLogistics(Array.isArray(data.containerLogistics) ? data.containerLogistics : []);
       setWasteTypes(nextWasteTypes);
       setBarData(nextBarData);
+      return data;
     } catch (err) {
       setError(err.response?.data?.error || err.message || "Unable to load reports");
       setOverview(emptyOverview);
       setDepartments([]);
+      setContainerLogistics([]);
       setBarData([]);
       setWasteTypes([]);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -832,9 +843,23 @@ function Reports() {
     window.print();
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     setError("");
     try {
+      if (reportType === "containers") {
+        const res = await exportReports(params);
+        const blob = new Blob([res.data], { type: "text/csv;charset=utf-8" });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `container-logistics_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        return;
+      }
+
       const csvRows = [];
       const headers = ["Department", "Containers", "Avg Fullness", "Weight", "Attention"];
       csvRows.push(headers.join(","));
@@ -864,9 +889,20 @@ function Reports() {
     }
   };
 
+  const handleGenerateReport = async () => {
+    const data = await loadReports();
+    const rows = data?.containerLogistics?.length
+      ? data.containerLogistics
+      : containerLogistics;
+    const kpis = data?.kpis || overview;
+    saveOfficialReport(kpis, rows, { reportType, period, aggregation });
+  };
+
   useEffect(() => {
     loadReports();
-  }, []);
+  }, [reportType, aggregation, period]);
+
+  const isContainerReport = reportType === "containers";
 
   const donutBackground = useMemo(() => {
     if (!wasteTypes.length) return "conic-gradient(#e4e9f0 0deg 360deg)";
@@ -882,12 +918,19 @@ function Reports() {
   }, [wasteTypes]);
 
   const primaryWaste = wasteTypes[0] || { name: "No Data", pct: 0 };
-  const kpis = [
-    { label: "Total Containers", val: overview.totalContainers, sub: "Active in the system", icon: Boxes },
-    { label: "Average Fullness", val: `${overview.avgFullness}%`, sub: "Average fill level", icon: Gauge },
-    { label: "Need Attention", val: overview.needAttention, sub: "Containers requiring action", icon: AlertTriangle },
-    { label: "Total Weight", val: `${overview.totalWeight.toFixed(1)} kg`, sub: "Total waste weight", icon: Scale },
-  ];
+  const kpis = isContainerReport
+    ? [
+        { label: "Completed disposals", val: overview.completedTasks ?? containerLogistics.length, sub: "In selected period", icon: CheckCircle2 },
+        { label: "Total weight disposed", val: `${Number(overview.totalWeight || 0).toFixed(1)} kg`, sub: "From disposal logs", icon: Scale },
+        { label: "Containers served", val: new Set(containerLogistics.map((r) => r.containerId)).size, sub: "Unique container IDs", icon: Boxes },
+        { label: "Drivers involved", val: new Set(containerLogistics.map((r) => r.driverName)).size, sub: "Unique drivers in log", icon: FileBarChart },
+      ]
+    : [
+        { label: "Total Containers", val: overview.totalContainers, sub: "Active in the system", icon: Boxes },
+        { label: "Average Fullness", val: `${overview.avgFullness}%`, sub: "Average fill level", icon: Gauge },
+        { label: "Need Attention", val: overview.needAttention, sub: "Containers requiring action", icon: AlertTriangle },
+        { label: "Total Weight", val: `${Number(overview.totalWeight || 0).toFixed(1)} kg`, sub: "Total waste weight", icon: Scale },
+      ];
 
   return (
     <>
@@ -907,7 +950,7 @@ function Reports() {
               <Download size={15} strokeWidth={2.35} aria-hidden="true" />
               Export
             </button>
-            <button className="rp-btn rp-btn-blue" onClick={() => saveOfficialReport(overview, departments)} disabled={loading} type="button">
+            <button className="rp-btn rp-btn-blue" onClick={handleGenerateReport} disabled={loading} type="button">
               <FileText size={15} strokeWidth={2.35} aria-hidden="true" />
               Generate Report
             </button>
@@ -934,6 +977,7 @@ function Reports() {
               </label>
               <div className="rp-field-input">
                 <select value={reportType} onChange={e => setReportType(e.target.value)}>
+                  <option value="containers">Container pickup & disposal log</option>
                   <option value="overview">General overview</option>
                   <option value="dept">By department</option>
                   <option value="type">By waste type</option>
@@ -998,6 +1042,56 @@ function Reports() {
           })}
         </div>
 
+        {isContainerReport ? (
+          <div className="rp-card">
+            <div className="rp-card-title">
+              <FileBarChart size={18} strokeWidth={2.35} aria-hidden="true" />
+              Container logistics (from database)
+            </div>
+            <p style={{ margin: "0 0 14px", color: "#7d8490", fontSize: ".84rem", lineHeight: 1.45 }}>
+              Who collected each container, when it was assigned, when it was disposed, and how much waste was processed.
+            </p>
+            <div className="rp-table-wrap">
+              <table className="rp-table">
+                <thead>
+                  <tr>
+                    <th>Container</th>
+                    <th>Location</th>
+                    <th>Driver</th>
+                    <th>Vehicle</th>
+                    <th>Utilizer</th>
+                    <th>Assigned</th>
+                    <th>Disposed</th>
+                    <th>Weight (kg)</th>
+                    <th>Method</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {containerLogistics.length === 0 ? (
+                    <tr>
+                      <td colSpan="9" className="rp-empty">
+                        {loading ? "Loading container logistics..." : "No completed disposals in this period."}
+                      </td>
+                    </tr>
+                  ) : containerLogistics.map((row) => (
+                    <tr key={`${row.taskId}-${row.containerId}`}>
+                      <td data-label="Container" style={{ fontWeight: 900 }}>{row.containerId}</td>
+                      <td data-label="Location">{row.location}</td>
+                      <td data-label="Driver">{row.driverName}</td>
+                      <td data-label="Vehicle">{row.vehiclePlate}{row.vehicleModel ? ` · ${row.vehicleModel}` : ""}</td>
+                      <td data-label="Utilizer">{row.utilizerName}</td>
+                      <td data-label="Assigned">{formatReportDate(row.assignedAt)}</td>
+                      <td data-label="Disposed">{formatReportDate(row.disposedAt)}</td>
+                      <td data-label="Weight">{row.weightKg != null ? row.weightKg.toFixed(1) : "—"}</td>
+                      <td data-label="Method">{row.disposalMethod}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <>
         <div className="rp-card">
           <div className="rp-card-title">
             <BarChart3 size={18} strokeWidth={2.35} aria-hidden="true" />
@@ -1124,64 +1218,79 @@ function Reports() {
             </table>
           </div>
         </div>
+          </>
+        )}
       </div>
     </>
   );
 }
 
-const saveOfficialReport = (overview, departments) => {
+const saveOfficialReport = (overview, containerRows, meta = {}) => {
   const now = new Date();
-  const fileName = `Report_Form_IV_${now.toISOString().split("T")[0]}.html`;
-  const safeDepartments = Array.isArray(departments) ? departments : [];
+  const fileName = `Container_Logistics_Report_${now.toISOString().split("T")[0]}.html`;
+  const rows = Array.isArray(containerRows) ? containerRows : [];
+  const periodLabel = meta.period || "All time";
+  const totalWeight = rows.reduce((sum, row) => sum + (Number(row.weightKg) || 0), 0);
+
+  const logisticsTable = rows.length
+    ? rows.map((row, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${row.containerId || ""}</td>
+          <td>${row.location || ""}</td>
+          <td>${row.driverName || ""}</td>
+          <td>${row.vehiclePlate || ""}${row.vehicleModel ? ` (${row.vehicleModel})` : ""}</td>
+          <td>${row.utilizerName || ""}</td>
+          <td>${formatReportDate(row.assignedAt)}</td>
+          <td>${formatReportDate(row.disposedAt)}</td>
+          <td>${row.weightKg != null ? row.weightKg.toFixed(1) : "—"}</td>
+          <td>${row.disposalMethod || ""}</td>
+        </tr>
+      `).join("")
+    : `<tr><td colspan="10" style="text-align:center">No completed disposals in the selected period.</td></tr>`;
 
   const htmlContent = `
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
-      <title>Form IV - ${now.getFullYear()}</title>
+      <title>Container Logistics Report - ${now.getFullYear()}</title>
       <style>
         body { font-family: 'Times New Roman', serif; line-height: 1.5; padding: 40px; color: #000; }
         .tbl { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .tbl th, .tbl td { border: 1px solid #000; padding: 8px; font-size: 13px; text-align: left; }
+        .tbl th, .tbl td { border: 1px solid #000; padding: 8px; font-size: 12px; text-align: left; }
         .header { text-align: center; font-weight: bold; text-transform: uppercase; font-size: 16px; margin-bottom: 20px; }
         .footer { margin-top: 50px; display: flex; justify-content: space-between; }
-        @media print { .no-save { display: none; } }
       </style>
     </head>
     <body>
-      <div style="text-align:right">No.IMG/MED/${now.getFullYear()}/${Math.floor(Math.random() * 10000)}</div>
-      <div class="header">Form - IV <br> (See rule 13) <br> ANNUAL REPORT</div>
+      <div style="text-align:right">MedWaste · ${now.toLocaleString()}</div>
+      <div class="header">Container Pickup & Disposal Log<br>Period: ${periodLabel}</div>
+
+      <p><b>Summary:</b> ${rows.length} disposal(s) · ${totalWeight.toFixed(1)} kg total · ${overview.completedTasks ?? rows.length} completed task(s)</p>
 
       <table class="tbl">
         <thead>
-          <tr><th>SI No.</th><th>Particulars</th><th>Details</th></tr>
+          <tr>
+            <th>#</th>
+            <th>Container</th>
+            <th>Location</th>
+            <th>Driver</th>
+            <th>Vehicle</th>
+            <th>Utilizer</th>
+            <th>Assigned</th>
+            <th>Disposed</th>
+            <th>Weight (kg)</th>
+            <th>Method</th>
+          </tr>
         </thead>
         <tbody>
-          <tr><td>1</td><td><b>Authorised Person</b></td><td>Dilara Galimkyzy</td></tr>
-          <tr><td>2</td><td><b>Facility Name</b></td><td>MedVault KTM.0810</td></tr>
-          <tr><td>3</td><td><b>Address & GPS</b></td><td>Astana, Kazakhstan (9.6814, 76.6439)</td></tr>
-          <tr><td>4</td><td><b>Logistics & Collection Log</b></td>
-            <td>
-              <table class="tbl" style="margin:0; width: 100%;">
-                <tr><th>Department</th><th>Driver</th><th>Vehicle</th><th>Fullness</th></tr>
-                ${safeDepartments.map((dept) => `
-                  <tr>
-                    <td>${dept.name || ""}</td>
-                    <td>${dept.driver || ""}</td>
-                    <td>${dept.plate || ""}</td>
-                    <td>${Number(dept.avgFullness || 0)}%</td>
-                  </tr>
-                `).join("")}
-              </table>
-            </td>
-          </tr>
-          <tr><td>5</td><td><b>Summary Statistics</b></td><td>Total Bins: ${overview.totalContainers} | Avg. Level: ${overview.avgFullness}% | Total Weight: ${overview.totalWeight.toFixed(1)} kg</td></tr>
+          ${logisticsTable}
         </tbody>
       </table>
 
       <div class="footer">
-        <div>Date of issue: ${now.toLocaleDateString()}</div>
+        <div>Generated: ${now.toLocaleDateString()}</div>
         <div style="text-align: center;">
           <br>__________________________<br>
           Authorized Signature

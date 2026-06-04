@@ -4,6 +4,7 @@ import {
   Activity,
   Bell,
   Boxes,
+  Building2,
   ChartColumn,
   CircleAlert,
   CircleCheck,
@@ -18,9 +19,11 @@ import {
   ShieldCheck,
   Truck,
   User,
+  Users,
 } from "lucide-react";
 import { getBins, getPredict, getAlerts, getNotifications, markRead } from "../services/api";
 import { useSocket } from "../hooks/useSocket";
+import ContainerDualView from "../components/ContainerDualView";
 
 const css = `
   .db-root {
@@ -1081,7 +1084,10 @@ function PredCard({ bin, pred, scheduleTo }) {
       </div>
       <div className="db-pred-row">
         <span className="db-pred-row-label">Hours until full</span>
-        <span className="db-pred-row-val">{pred?.hours_until_full ?? "-"}{pred?.hours_until_full != null ? "h" : ""}</span>
+        <span className="db-pred-row-val">
+          {pred?.hours_until_full ?? pred?.predictedHoursToFull ?? "-"}
+          {(pred?.hours_until_full ?? pred?.predictedHoursToFull) != null ? "h" : ""}
+        </span>
       </div>
       {pred?.note && (
         <div className="db-pred-note">
@@ -1258,7 +1264,9 @@ function Dashboard() {
       }, []).join(", ")})`
     : "conic-gradient(#e7e7ef 0deg 360deg)";
   const primaryWaste = wasteTypes[0] || { name: "-", pct: 0 };
-  const schedulePickupPath = role === "admin" ? "/dashboard/admin/dispatch" : "/dashboard/alerts";
+  const schedulePickupPath = "/dashboard/alerts";
+  const showDualView = role === "personnel";
+  const canManualAssign = role === "personnel";
 
   const quickActions = [
     { icon: Boxes, label: "Bins", link: "/dashboard/containers" },
@@ -1268,8 +1276,9 @@ function Dashboard() {
     { icon: Route, label: "Routes", link: "/dashboard/routes-history" },
     { icon: User, label: "Profile", link: "/dashboard/profile" },
     ...(role === "admin" ? [
-      { icon: Truck, label: "Dispatch", link: "/dashboard/admin/dispatch" },
-      { icon: ShieldCheck, label: "Approvals", link: "/dashboard/admin/drivers" },
+      { icon: Building2, label: "Organizations", link: "/dashboard/admin/organizations" },
+      { icon: Users, label: "Users", link: "/dashboard/admin/users" },
+      { icon: ShieldCheck, label: "Approvals", link: "/dashboard/approvals" },
     ] : []),
   ];
 
@@ -1356,6 +1365,15 @@ function Dashboard() {
             <StatCard loading={loading} title="Needs Attention" value={critical} delta={critical > 0 ? "Action" : "OK"} deltaType={critical > 0 ? "down" : "neu"} subtitle="Bins >= 80% full" forecast={critical > 0 ? `${critical} bin(s) need pickup` : "All bins normal"} />
             <StatCard loading={loading} title="AI Confidence" value={`${avgConf}%`} delta="live" deltaType="up" subtitle="Avg prediction accuracy" />
           </div>
+
+          {showDualView && (
+            <ContainerDualView
+              bins={bins}
+              predictions={predictions}
+              loading={loading}
+              manualAssign={canManualAssign}
+            />
+          )}
 
           <div className="db-two-col">
             <div className="db-card">
