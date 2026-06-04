@@ -1,27 +1,27 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { Capacitor } from "@capacitor/core";
 import { BrowserRouter, HashRouter, Routes, Route, Navigate } from "react-router-dom";
 
-// Pages
-import Home               from "./pages/Home";
-import Login              from "./pages/Auth/Login";
-import Register           from "./pages/Auth/Register";
-import Dashboard          from "./pages/Dashboard";
-import Containers         from "./pages/Containers";
-import MapPage            from "./pages/MapPage";
-import Alerts             from "./pages/Alerts";
-import Reports            from "./pages/Reports";
-import DriverRegistration from "./pages/DriverRegistration";
-import RouteHistory       from "./pages/RouteHistory";
-import Profile            from "./pages/Profile";
-import AdminApprovals     from "./pages/Adminapprovals.jsx";
-import AdminUsers         from "./pages/AdminUsers";
-import AdminOrganizations from "./pages/AdminOrganizations";
-import AdminInquiries from "./pages/AdminInquiries";
-import UtilizerPage       from "./pages/Utilizerpage.jsx";
-import UtilizerInbound    from "./pages/UtilizerInbound.jsx";
-import UtilizerRegistration from "./pages/Utilizerregistration.jsx";
-import DriverDashboard    from "./pages/Driverdashboard";
+// Route-level code splitting keeps the WebView initial payload smaller on mobile.
+const Home = lazy(() => import("./pages/Home"));
+const Login = lazy(() => import("./pages/Auth/Login"));
+const Register = lazy(() => import("./pages/Auth/Register"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Containers = lazy(() => import("./pages/Containers"));
+const MapPage = lazy(() => import("./pages/MapPage"));
+const Alerts = lazy(() => import("./pages/Alerts"));
+const Reports = lazy(() => import("./pages/Reports"));
+const DriverRegistration = lazy(() => import("./pages/DriverRegistration"));
+const RouteHistory = lazy(() => import("./pages/RouteHistory"));
+const Profile = lazy(() => import("./pages/Profile"));
+const AdminApprovals = lazy(() => import("./pages/Adminapprovals.jsx"));
+const AdminUsers = lazy(() => import("./pages/AdminUsers"));
+const AdminOrganizations = lazy(() => import("./pages/AdminOrganizations"));
+const AdminInquiries = lazy(() => import("./pages/AdminInquiries"));
+const UtilizerPage = lazy(() => import("./pages/Utilizerpage.jsx"));
+const UtilizerInbound = lazy(() => import("./pages/UtilizerInbound.jsx"));
+const UtilizerRegistration = lazy(() => import("./pages/Utilizerregistration.jsx"));
+const DriverDashboard = lazy(() => import("./pages/Driverdashboard"));
 
 // Components
 import Layout       from "./components/Layout";
@@ -30,12 +30,21 @@ import ApiConfigBanner from "./components/ApiConfigBanner.jsx";
 
 const Router = Capacitor.isNativePlatform() ? HashRouter : BrowserRouter;
 
+function RouteFallback() {
+  return (
+    <div className="route-fallback" role="status" aria-live="polite">
+      Loading MedWaste...
+    </div>
+  );
+}
+
 function App() {
   return (
-    <div className="mobile-shell">
+    <div className="mobile-shell web-shell">
       <Router>
         <ApiConfigBanner />
-        <Routes>
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
 
         {/* ── Public ──────────────────────────────────────── */}
         <Route path="/"         element={<Home />} />
@@ -140,7 +149,8 @@ function App() {
         {/* ── Catch-all ───────────────────────────────────── */}
         <Route path="*" element={<Navigate to="/" replace />} />
 
-        </Routes>
+          </Routes>
+        </Suspense>
       </Router>
     </div>
   );

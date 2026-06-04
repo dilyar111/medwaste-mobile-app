@@ -18,7 +18,7 @@ const {
 // Only load Sequelize models when a Postgres URI is actually configured.
 // The models call sequelize.define() at module load time; requiring them
 // when sequelize is null crashes the process before any env-flag check runs.
-if (process.env.POSTGRES_URI) {
+if (process.env.POSTGRES_URI || process.env.DATABASE_URL) {
   require('./models/pg/Company');
   require('./models/pg/User');
   require('./models/pg/Driver');

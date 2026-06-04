@@ -1493,3 +1493,457 @@ body {
         border-radius: 18px !important;
     }
 }
+
+/* Production responsive layer
+   This replaces the old forced 430px phone preview behavior with a real fluid shell.
+   The rules are intentionally centralized here so page-specific styles can keep their
+   existing visual language while sharing safer breakpoints, spacing, and overflow behavior. */
+:root {
+    --resp-safe-top: env(safe-area-inset-top, 0px);
+    --resp-safe-right: env(safe-area-inset-right, 0px);
+    --resp-safe-bottom: env(safe-area-inset-bottom, 0px);
+    --resp-safe-left: env(safe-area-inset-left, 0px);
+    --resp-page-pad: clamp(12px, 2.4vw, 28px);
+    --resp-section-gap: clamp(12px, 2vw, 22px);
+    --resp-card-pad: clamp(14px, 2vw, 22px);
+    --resp-touch: 44px;
+    --resp-control-h: clamp(40px, 5.2vw, 46px);
+    --resp-shell-max: 1440px;
+    --resp-readable: 72ch;
+    --resp-map-h: clamp(320px, 58dvh, 640px);
+    --resp-list-h: clamp(260px, 42dvh, 520px);
+}
+
+html,
+body,
+#root {
+    width: 100%;
+    min-width: 0;
+}
+
+#root {
+    justify-content: stretch;
+    align-items: stretch;
+}
+
+body {
+    overscroll-behavior: none;
+}
+
+img,
+svg,
+canvas,
+video {
+    max-width: 100%;
+}
+
+.root-error {
+    width: min(100%, 560px);
+    margin: 0 auto;
+    padding: var(--resp-page-pad);
+    font-family: system-ui, sans-serif;
+}
+
+.root-error h1 {
+    margin-bottom: 10px;
+    font-size: clamp(1rem, 2.4vw, 1.15rem);
+}
+
+.root-error pre {
+    overflow: auto;
+    padding: 12px;
+    border-radius: var(--mw-radius-sm);
+    background: #f1f5f9;
+    font-size: .82rem;
+    white-space: pre-wrap;
+}
+
+.route-fallback {
+    display: grid;
+    min-height: 100dvh;
+    place-items: center;
+    padding: var(--resp-page-pad);
+    background: var(--mw-bg);
+    color: var(--mw-muted);
+    font-weight: 800;
+}
+
+.mobile-shell.web-shell {
+    width: 100%;
+    max-width: none !important;
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+    background: var(--mw-bg);
+    box-shadow: none;
+}
+
+@supports not (height: 100dvh) {
+    .mobile-shell.web-shell {
+        height: 100vh;
+        min-height: 100vh;
+    }
+}
+
+.web-shell .app-layout {
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    overflow: hidden;
+}
+
+.web-shell .app-main {
+    min-width: 0;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
+}
+
+/* The drawer header is a mobile-only affordance; showing it on tablets/desktops wastes space. */
+.web-shell .mobile-header-row {
+    display: none !important;
+}
+
+@media (max-width: 767px) {
+    .web-shell .mobile-header-row {
+        display: flex !important;
+        position: sticky;
+        top: 0;
+        z-index: 120;
+        padding:
+            calc(10px + var(--resp-safe-top))
+            calc(var(--resp-page-pad) + var(--resp-safe-right))
+            10px
+            calc(var(--resp-page-pad) + var(--resp-safe-left));
+    }
+}
+
+/* Public pages keep the same design, but now fill browsers/tablets instead of a phone frame. */
+.web-shell .landing-page,
+.web-shell .auth-page {
+    min-height: 100dvh;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.web-shell .container {
+    width: min(100%, var(--resp-shell-max));
+    max-width: var(--resp-shell-max);
+    padding-inline: max(var(--resp-page-pad), var(--resp-safe-left));
+}
+
+.web-shell header .container {
+    flex-wrap: wrap;
+    row-gap: 10px;
+}
+
+.web-shell nav ul {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: clamp(10px, 2vw, 28px);
+}
+
+.web-shell .btn,
+.web-shell button,
+.web-shell input,
+.web-shell select,
+.web-shell textarea,
+.web-shell a[role="button"] {
+    min-height: var(--resp-touch);
+}
+
+.web-shell input,
+.web-shell select,
+.web-shell textarea {
+    max-width: 100%;
+}
+
+.web-shell .btn {
+    min-width: 0;
+    white-space: normal;
+}
+
+.web-shell .auth-page {
+    align-items: center;
+    padding:
+        max(var(--resp-page-pad), var(--resp-safe-top))
+        max(var(--resp-page-pad), var(--resp-safe-right))
+        max(var(--resp-page-pad), var(--resp-safe-bottom))
+        max(var(--resp-page-pad), var(--resp-safe-left));
+}
+
+.web-shell .auth-container {
+    width: min(100%, 460px);
+    max-height: calc(100dvh - (var(--resp-page-pad) * 2));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Dashboard pages get a shared fluid container so cards do not stretch endlessly on wide screens. */
+.web-shell :is(
+  .db-root, .ct-root, .mp-root, .al-root, .rp-root, .rh-root, .pf-root,
+  .dd-root, .au-root, .ad-root, .ap-root, .disp-root, .ut-root, .ur-root, .dr-root
+) {
+    width: 100%;
+    max-width: var(--resp-shell-max) !important;
+    margin-inline: auto;
+    padding:
+        var(--resp-page-pad)
+        max(var(--resp-page-pad), var(--resp-safe-right))
+        calc(var(--resp-page-pad) + var(--resp-safe-bottom))
+        max(var(--resp-page-pad), var(--resp-safe-left)) !important;
+    overflow-x: clip;
+}
+
+.web-shell :is(
+  .db-root, .ct-root, .mp-root, .al-root, .rp-root, .rh-root, .pf-root,
+  .dd-root, .au-root, .ad-root, .ap-root, .disp-root, .ut-root, .ur-root, .dr-root
+) * {
+    min-width: 0;
+}
+
+.web-shell :is(
+  [class*="-card"], [class*="-panel"], [class*="-toolbar"], [class*="-empty"],
+  [class*="-state-card"], [class*="-submit-card"], [class*="-kpi-card"], [class*="-stat"]
+) {
+    overflow-wrap: anywhere;
+}
+
+.web-shell :is(
+  .db-stats-grid, .db-predictions-grid, .db-actions-grid, .db-analytics-grid,
+  .ct-grid, .al-stats, .al-grid, .rp-kpi-grid, .pf-stats-row, .pf-grid-2,
+  .dd-stats, .dd-grid, .au-stats, .ad-stats, .ap-stats,
+  .ur-grid-2, .ur-grid-3, .dr-grid-2, .dr-grid-3, .ut-grid
+) {
+    gap: var(--resp-section-gap) !important;
+}
+
+.web-shell :is(
+  .db-stats-grid, .al-stats, .rp-kpi-grid, .pf-stats-row, .au-stats, .ad-stats, .ap-stats
+) {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)) !important;
+}
+
+.web-shell :is(.db-actions-grid, .db-predictions-grid, .ct-grid, .dd-grid, .ut-grid) {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)) !important;
+}
+
+.web-shell :is(.ur-grid-2, .dr-grid-2, .pf-grid-2) {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)) !important;
+}
+
+.web-shell :is(.ur-grid-3, .dr-grid-3) {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)) !important;
+}
+
+.web-shell :is(
+  .db-page-header, .db-toolbar, .ct-header, .ct-toolbar, .mp-header, .rh-header,
+  .al-header, .rp-header, .pf-header, .dd-header, .au-header, .ad-header,
+  .ap-header, .disp-header, .ur-head, .dr-head, .ut-head
+) {
+    gap: var(--resp-section-gap);
+}
+
+.web-shell :is(
+  .db-toolbar, .ct-toolbar, .mp-header-btns, .rh-filters, .rp-params-grid,
+  .al-filter-row, .pf-actions, .dd-header-actions, .au-toolbar, .disp-toolbar
+) {
+    max-width: 100%;
+}
+
+/* Maps and route history use viewport-based heights so landscape and tablets do not get giant fixed panels. */
+.web-shell :is(.mp-layout, .rh-main) {
+    gap: var(--resp-section-gap) !important;
+}
+
+.web-shell .mp-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+}
+
+.web-shell :is(.mp-map-shell, .mp-map-empty, .rh-map-card, .rh-sidebar) {
+    height: var(--resp-map-h) !important;
+}
+
+.web-shell .mp-sidebar {
+    height: var(--resp-map-h) !important;
+}
+
+.web-shell :is(.mp-list, .mp-stats-content, .rh-sidebar-list) {
+    max-height: var(--resp-list-h) !important;
+}
+
+.web-shell .leaflet-container {
+    min-height: 260px;
+    touch-action: pan-x pan-y;
+}
+
+/* Tables prefer card mode on phones, but stay horizontally safe on tablets/foldables. */
+.web-shell :is(
+  .rp-table-wrap, .au-table-wrap, .ad-table-wrap, .disp-table-wrap,
+  [class*="-table-wrap"]
+) {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.web-shell table {
+    max-width: 100%;
+}
+
+.web-shell th,
+.web-shell td {
+    overflow-wrap: anywhere;
+}
+
+/* Modal and toast overlays need safe-area padding inside the WebView. */
+.web-shell :is([class*="-modal"], [class*="-toast"], [class*="-overlay"]) {
+    max-width: calc(100vw - (var(--resp-page-pad) * 2));
+}
+
+.web-shell :is([class*="-modal"]) {
+    max-height: calc(100dvh - (var(--resp-page-pad) * 2));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 767px) {
+    .web-shell {
+        --resp-page-pad: clamp(10px, 4vw, 16px);
+        --resp-section-gap: 10px;
+        --resp-card-pad: 14px;
+        --resp-map-h: min(420px, 58dvh);
+        --resp-list-h: min(360px, 44dvh);
+    }
+
+    .web-shell .app-layout {
+        display: block;
+    }
+
+    .web-shell .app-main {
+        padding-bottom: var(--resp-safe-bottom);
+        scrollbar-gutter: auto;
+    }
+
+    .web-shell .mobile-header-copy h1 {
+        font-size: clamp(1.1rem, 5.2vw, 1.45rem) !important;
+    }
+
+    .web-shell .mobile-header-copy p {
+        font-size: clamp(.76rem, 3.6vw, .88rem) !important;
+    }
+
+    .web-shell header .container,
+    .web-shell .home-hero-actions,
+    .web-shell :is(
+      .db-page-header, .db-toolbar, .db-toolbar-left, .db-toolbar-actions,
+      .ct-header, .ct-toolbar, .mp-header, .rh-header, .al-header,
+      .rp-header, .pf-header, .dd-header, .au-header, .ad-header,
+      .ap-header, .disp-header, .ur-head, .dr-head, .ut-head
+    ) {
+        align-items: stretch !important;
+        flex-direction: column !important;
+    }
+
+    .web-shell nav ul {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .web-shell :is(button, .btn, [class*="-btn"], [class*="-button"]) {
+        min-height: var(--resp-touch);
+    }
+
+    .web-shell :is(
+      .db-toolbar-actions, .db-btn, .ct-btn, .mp-btn, .rh-btn, .rp-btn,
+      .al-btn, .pf-btn, .dd-refresh-btn, .dd-avail-toggle, .au-btn,
+      .ad-btn, .ap-tab, .disp-btn, .ur-status-btn, .dr-status-btn
+    ) {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .web-shell :is(.mp-layout, .rh-main) {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .web-shell :is(.mp-map-card, .mp-sidebar, .rh-sidebar, .rh-map-card) {
+        width: 100% !important;
+    }
+
+    .web-shell :is(.mp-map-shell, .mp-map-empty, .rh-map-card, .rh-sidebar) {
+        height: var(--resp-map-h) !important;
+    }
+
+    .web-shell :is(.rp-table, .au-table, .ad-table, .disp-table) {
+        min-width: 0 !important;
+    }
+
+    .web-shell .auth-container {
+        max-height: none;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1180px) {
+    .web-shell {
+        --resp-page-pad: clamp(18px, 2.6vw, 30px);
+        --resp-map-h: clamp(380px, 54dvh, 600px);
+    }
+
+    .web-shell .mp-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .web-shell .mp-sidebar {
+        height: auto !important;
+    }
+
+    .web-shell .mp-list,
+    .web-shell .mp-stats-content {
+        max-height: 360px !important;
+    }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+    .web-shell {
+        --resp-page-pad: 10px;
+        --resp-map-h: min(340px, 68dvh);
+        --resp-list-h: min(260px, 52dvh);
+    }
+
+    .web-shell .auth-page {
+        align-items: flex-start;
+    }
+
+    .web-shell .hero-section {
+        min-height: auto;
+        padding-block: 36px;
+    }
+}
+
+@media (max-width: 360px) {
+    .web-shell {
+        --mobile-nav-size: 40px;
+        --resp-page-pad: 10px;
+    }
+
+    .web-shell .mobile-header-row {
+        gap: 8px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .web-shell *,
+    .web-shell *::before,
+    .web-shell *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .001ms !important;
+    }
+}
