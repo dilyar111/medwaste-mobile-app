@@ -3,6 +3,8 @@
 
 BEGIN;
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- ── Enum types ─────────────────────────────────────────────────────────────
 DO $$
 BEGIN
@@ -29,12 +31,14 @@ CREATE TABLE IF NOT EXISTS companies (
 );
 
 -- Cast via column type (works with Sequelize enum_companies_* or subscription_plan_enum)
-INSERT INTO companies (id, name, "subscriptionPlan", "paymentStatus")
+INSERT INTO companies (id, name, "subscriptionPlan", "paymentStatus", "createdAt", "updatedAt")
 SELECT
   '00000000-0000-4000-8000-000000000001'::uuid,
   'Default Organization',
   'free',
-  'active'
+  'active',
+  NOW(),
+  NOW()
 WHERE NOT EXISTS (SELECT 1 FROM companies LIMIT 1);
 
 -- ── Utilizers: stable station UUID for user.stationId FK ───────────────────

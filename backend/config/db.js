@@ -171,8 +171,10 @@ async function connectPostgres() {
   }
   try {
     await sequelize.authenticate();
-    await sequelize.sync({ alter: false });
     await runPendingMigrations();
+    if (process.env.ALLOW_SEQUELIZE_SYNC === 'true') {
+      await sequelize.sync({ alter: false });
+    }
     await ensureUserProfileColumns();
     await ensureContainerIntegrity();
     console.log('✅ PostgreSQL connected');
