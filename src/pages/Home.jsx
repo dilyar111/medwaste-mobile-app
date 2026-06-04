@@ -679,10 +679,13 @@ const Home = () => {
         .home-dumamed .dm-pricing-grid {
           display: grid;
           gap: 14px;
+          align-items: stretch;
         }
 
         .home-dumamed .dm-plan-card {
-          display: grid;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
           gap: 14px;
           padding: 20px;
           border: 1px solid rgba(232, 231, 238, .9);
@@ -699,9 +702,24 @@ const Home = () => {
 
         .home-dumamed .dm-plan-top {
           display: flex;
-          align-items: flex-start;
+          align-items: center;
           justify-content: space-between;
           gap: 12px;
+          min-height: 34px;
+        }
+
+        .home-dumamed .dm-plan-popular-slot {
+          flex-shrink: 0;
+        }
+
+        .home-dumamed .dm-plan-popular-slot.is-empty {
+          visibility: hidden;
+          pointer-events: none;
+        }
+
+        .home-dumamed .dm-plan-popular-slot.is-empty .dm-plan-badge {
+          background: #fff7df;
+          color: #8a5a0a;
         }
 
         .home-dumamed .dm-plan-badge {
@@ -728,6 +746,7 @@ const Home = () => {
           font-size: clamp(1.8rem, 8vw, 2.2rem);
           font-weight: 900;
           line-height: 1;
+          min-height: 1.1em;
         }
 
         .home-dumamed .dm-plan-period {
@@ -735,17 +754,20 @@ const Home = () => {
           color: var(--dm-muted);
           font-size: .76rem;
           font-weight: 700;
+          min-height: 1.2em;
         }
 
         .home-dumamed .dm-plan-desc {
           color: var(--dm-muted);
           font-size: .86rem;
           line-height: 1.5;
+          min-height: 2.55em;
         }
 
         .home-dumamed .dm-plan-features {
           display: grid;
           gap: 10px;
+          flex: 1 1 auto;
           margin: 0;
           padding: 0;
           list-style: none;
@@ -777,6 +799,7 @@ const Home = () => {
           gap: 8px;
           width: 100%;
           min-height: 48px;
+          margin-top: auto;
           border-radius: 16px;
           font-weight: 900;
         }
@@ -1198,12 +1221,12 @@ const Home = () => {
                       <PlanIcon size={14} strokeWidth={2.4} aria-hidden="true" />
                       {plan.name}
                     </span>
-                    {plan.highlighted && (
+                    <span className={`dm-plan-popular-slot${plan.highlighted ? '' : ' is-empty'}`}>
                       <span className="dm-plan-badge" style={{ background: '#fff7df', color: '#8a5a0a' }}>
                         <Zap size={14} strokeWidth={2.4} aria-hidden="true" />
                         Popular
                       </span>
-                    )}
+                    </span>
                   </div>
                   <div>
                     <div className="dm-plan-price">{plan.price}</div>
