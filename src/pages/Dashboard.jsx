@@ -46,6 +46,40 @@ const css = `
     color: var(--db-ink);
   }
 
+  .db-root.db-compact .db-main {
+    padding: clamp(12px, 2vw, 20px);
+  }
+
+  .db-root.db-compact .db-stats-grid,
+  .db-root.db-compact .db-two-col {
+    gap: 12px;
+  }
+
+  .db-root.db-compact .db-stats-grid,
+  .db-root.db-compact .db-two-col,
+  .db-root.db-compact .db-card {
+    margin-bottom: 12px;
+  }
+
+  .db-root.db-compact .db-card {
+    padding: 14px 16px;
+    border-radius: 14px;
+  }
+
+  .db-root.db-compact .db-stat-card,
+  .db-root.db-compact .db-pred-card,
+  .db-root.db-compact .db-action-btn {
+    border-radius: 14px;
+  }
+
+  .db-root.db-compact .db-pred-card {
+    padding: 12px;
+  }
+
+  .db-root.db-compact .db-action-btn {
+    min-height: 78px;
+  }
+
   .db-root,
   .db-root * {
     box-sizing: border-box;
@@ -1276,13 +1310,17 @@ function Dashboard() {
       const binsRes = await getBins({ period: period.toLowerCase() });
       setBins(binsRes.data);
 
-      const binIds = binsRes.data.map(b => b._id);
-      const predResults = await Promise.all(
-        binIds.map(id => getPredict(id).then(r => ({ id, data: r.data })).catch(() => ({ id, data: null })))
-      );
-      const predMap = {};
-      predResults.forEach(({ id, data }) => { if (data) predMap[id] = data; });
-      setPredictions(predMap);
+      if (settings.aiPredictions) {
+        const binIds = binsRes.data.map(b => b._id);
+        const predResults = await Promise.all(
+          binIds.map(id => getPredict(id).then(r => ({ id, data: r.data })).catch(() => ({ id, data: null })))
+        );
+        const predMap = {};
+        predResults.forEach(({ id, data }) => { if (data) predMap[id] = data; });
+        setPredictions(predMap);
+      } else {
+        setPredictions({});
+      }
 
       const alertsRes = await getAlerts();
       setAlerts(alertsRes.data.filter(a => !a.resolved));
@@ -1307,13 +1345,18 @@ function Dashboard() {
   useEffect(() => {
     fetchAll();
     fetchNotifications();
+
+    if (!settings.autoRefresh) {
+      return undefined;
+    }
+
     const dataInterval = setInterval(fetchAll, 10000);
     const notifInterval = setInterval(fetchNotifications, 30000);
     return () => {
       clearInterval(dataInterval);
       clearInterval(notifInterval);
     };
-  }, [period]);
+  }, [period, settings.autoRefresh, settings.aiPredictions]);
 
   useSocket({
     "telemetry:update": ({ binId, fullness }) => {
@@ -1385,7 +1428,7 @@ function Dashboard() {
   return (
     <>
       <style>{css}</style>
-      <div className="db-root">
+      <div className={`db-root ${settings.compact ? "db-compact" : ""}`}>
         <div className="db-topbar">
           <div className="db-brand">
             <span className="db-brand-mark">
@@ -1443,7 +1486,7 @@ function Dashboard() {
             <div className="db-toolbar-left">
               <div className="db-autorefresh">
                 <RefreshCw size={15} strokeWidth={2.4} aria-hidden="true" />
-                Auto-refresh 10s
+                Auto-refresh {settings.autoRefresh ? "10s" : "Off"}
               </div>
               <div className="db-period-tabs">
                 {["Day", "Week", "Month", "Year"].map(p => (
@@ -1475,135 +1518,153 @@ function Dashboard() {
             />
           )}
 
-          <div className="db-two-col">
-            <div className="db-card">
-              <div className="db-card-header">
-                <CardTitle icon={Gauge}>Fullness Overview</CardTitle>
-                <Link to="/dashboard/containers" className="db-card-link">All containers</Link>
-              </div>
-              <div className="db-analytics-grid">
-                {[
-                  { val: totalBins, label: "Total bins" },
-                  { val: `${avgFullness}%`, label: "Avg fullness" },
-                  { val: critical, label: "Critical (>=80%)" },
-                  { val: `${avgConf}%`, label: "AI confidence" },
-                ].map(m => (
-                  <div className="db-analytics-item" key={m.label}>
-                    <div className="db-analytics-val">{loading ? "-" : m.val}</div>
-                    <div className="db-analytics-label">{m.label}</div>
+          {settings.analytics && (
+            <>
+              <div className="db-two-col">
+                <div className="db-card">
+                  <div className="db-card-header">
+                    <CardTitle icon={Gauge}>Fullness Overview</CardTitle>
+                    <Link to="/dashboard/containers" className="db-card-link">All containers</Link>
                   </div>
-                ))}
-              </div>
-              <div className="db-chart-note">
-                Each bar is one bin. Taller bars mean a fuller container. Hover a bar to see the exact bin ID and fullness.
-              </div>
-              <div className="db-chart-area" aria-label="Fullness by bin">
-                {barHeights.map((h, i) => (
-                  <div
-                    key={i}
-                    className="db-bar-group"
-                    title={bins[i] ? `${bins[i].locationName || bins[i]._id}: ${bins[i].fullness}%` : `${h}%`}
-                  >
-                    <div
-                      className="db-bar"
-                      style={{ height: `${Math.max(10, Math.round(Math.max(h, 4) * 0.85))}px` }}
-                    />
-                    <div className="db-bar-label">
-                      {bins[i]?.locationName || bins[i]?._id || `Bin ${i + 1}`}
+                  <div className="db-analytics-grid">
+                    {[
+                      { val: totalBins, label: "Total bins" },
+                      { val: `${avgFullness}%`, label: "Avg fullness" },
+                      { val: critical, label: "Critical (>=80%)" },
+                      { val: `${avgConf}%`, label: "AI confidence" },
+                    ].map(m => (
+                      <div className="db-analytics-item" key={m.label}>
+                        <div className="db-analytics-val">{loading ? "-" : m.val}</div>
+                        <div className="db-analytics-label">{m.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="db-chart-note">
+                    Each bar is one bin. Taller bars mean a fuller container. Hover a bar to see the exact bin ID and fullness.
+                  </div>
+                  <div className="db-chart-area" aria-label="Fullness by bin">
+                    {barHeights.map((h, i) => (
+                      <div
+                        key={i}
+                        className="db-bar-group"
+                        title={bins[i] ? `${bins[i].locationName || bins[i]._id}: ${bins[i].fullness}%` : `${h}%`}
+                      >
+                        <div
+                          className="db-bar"
+                          style={{ height: `${Math.max(10, Math.round(Math.max(h, 4) * 0.85))}px` }}
+                        />
+                        <div className="db-bar-label">
+                          {bins[i]?.locationName || bins[i]?._id || `Bin ${i + 1}`}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="db-chart-legend">
+                    <div className="db-legend-item"><div className="db-legend-dot" style={{ background: "#149d80" }} /> Fullness %</div>
+                  </div>
+                </div>
+
+                <div className="db-card">
+                  <div className="db-card-header">
+                    <CardTitle icon={PackageCheck}>Waste Types</CardTitle>
+                  </div>
+                  <div className="db-donut-wrap">
+                    <div className="db-donut" style={{ background: wasteDonutBackground }}>
+                      {wasteTypes.length > 0 && (
+                        <div
+                          className="db-donut-glow"
+                          style={{
+                            background: wasteDonutGlow,
+                            opacity: 1,
+                            boxShadow: `0 0 14px ${activeWasteColor}44`,
+                          }}
+                        />
+                      )}
+                      <div className="db-donut-inner">
+                        <div className="db-donut-pct">{activeWaste.pct}%</div>
+                        <div className="db-donut-sub">{activeWaste.name}</div>
+                      </div>
+                    </div>
+                    <div className="db-waste-types">
+                      {wasteTypes.length === 0 ? (
+                        <div style={{ fontSize: "0.78rem", color: "#7d8490" }}>No waste type data</div>
+                      ) : wasteTypes.map((waste, index) => (
+                        <button
+                          key={waste.name}
+                          type="button"
+                          className={`db-waste-item ${activeWasteIndex === index ? "active" : ""}`}
+                          onClick={() => setSelectedWasteIndex(index)}
+                          aria-pressed={activeWasteIndex === index}
+                          title={`Highlight ${waste.name}`}
+                        >
+                          <div className="db-waste-row">
+                            <div className="db-waste-label">
+                              <div className="db-waste-dot" style={{ background: wasteTypeColors[index % wasteTypeColors.length] }} />
+                              <span>{waste.name}</span>
+                            </div>
+                            <span className="db-waste-pct">{waste.pct}%</span>
+                          </div>
+                          <div className="db-waste-bar-wrap">
+                            <div className="db-waste-bar-fill" style={{ width: `${waste.pct}%`, background: wasteTypeColors[index % wasteTypeColors.length] }} />
+                          </div>
+                        </button>
+                      ))}
+                      <div style={{ fontSize: "0.72rem", color: "#7d8490", marginTop: 8 }}>
+                        Tap a waste type to highlight it in the donut and compare shares at a glance.
+                      </div>
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
-              <div className="db-chart-legend">
-                <div className="db-legend-item"><div className="db-legend-dot" style={{ background: "#149d80" }} /> Fullness %</div>
-              </div>
-            </div>
 
-            <div className="db-card">
-              <div className="db-card-header">
-                <CardTitle icon={PackageCheck}>Waste Types</CardTitle>
-              </div>
-              <div className="db-donut-wrap">
-                <div className="db-donut" style={{ background: wasteDonutBackground }}>
-                  {wasteTypes.length > 0 && (
-                    <div
-                      className="db-donut-glow"
-                      style={{
-                        background: wasteDonutGlow,
-                        opacity: 1,
-                        boxShadow: `0 0 14px ${activeWasteColor}44`,
-                      }}
-                    />
+              {settings.aiPredictions ? (
+                <div className="db-card">
+                  <div className="db-card-header db-predictions-header">
+                    <div className="db-predictions-title-row">
+                      <CardTitle icon={Activity}>AI Maintenance Predictions</CardTitle>
+                      <span className="db-badge db-badge-green">
+                        <CircleCheck size={12} strokeWidth={2.5} aria-hidden="true" />
+                        Live / {Object.keys(predictions).length} bins
+                      </span>
+                    </div>
+                    <Link to="/dashboard/containers" className="db-card-link">View all</Link>
+                  </div>
+                  {loading ? (
+                    <div className="db-predictions-grid">
+                      {[1, 2, 3].map(i => <div key={i} className="db-skeleton" style={{ height: 180 }} />)}
+                    </div>
+                  ) : bins.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: 34, color: "#7d8490", fontSize: ".86rem" }}>
+                      No bin data yet. Start the sensor to see predictions.
+                    </div>
+                  ) : (
+                    <div className="db-predictions-grid">
+                      {bins.slice(0, 6).map(bin => (
+                        <PredCard
+                          key={bin._id}
+                          bin={bin}
+                          pred={predictions[bin._id]}
+                          scheduleTo={schedulePickupPath}
+                        />
+                      ))}
+                    </div>
                   )}
-                  <div className="db-donut-inner">
-                    <div className="db-donut-pct">{activeWaste.pct}%</div>
-                    <div className="db-donut-sub">{activeWaste.name}</div>
+                </div>
+              ) : (
+                <div className="db-card">
+                  <div className="db-card-header">
+                    <CardTitle icon={Activity}>AI Maintenance Predictions</CardTitle>
+                  </div>
+                  <div className="db-attention-empty" style={{ padding: 18 }}>
+                    <div className="db-attention-icon">
+                      <CircleCheck size={24} strokeWidth={2.4} aria-hidden="true" />
+                    </div>
+                    <p>AI Predictions are turned off.</p>
                   </div>
                 </div>
-                <div className="db-waste-types">
-                  {wasteTypes.length === 0 ? (
-                    <div style={{ fontSize: "0.78rem", color: "#7d8490" }}>No waste type data</div>
-                  ) : wasteTypes.map((waste, index) => (
-                    <button
-                      key={waste.name}
-                      type="button"
-                      className={`db-waste-item ${activeWasteIndex === index ? "active" : ""}`}
-                      onClick={() => setSelectedWasteIndex(index)}
-                      aria-pressed={activeWasteIndex === index}
-                      title={`Highlight ${waste.name}`}
-                    >
-                      <div className="db-waste-row">
-                        <div className="db-waste-label">
-                          <div className="db-waste-dot" style={{ background: wasteTypeColors[index % wasteTypeColors.length] }} />
-                          <span>{waste.name}</span>
-                        </div>
-                        <span className="db-waste-pct">{waste.pct}%</span>
-                      </div>
-                      <div className="db-waste-bar-wrap">
-                        <div className="db-waste-bar-fill" style={{ width: `${waste.pct}%`, background: wasteTypeColors[index % wasteTypeColors.length] }} />
-                      </div>
-                    </button>
-                  ))}
-                  <div style={{ fontSize: "0.72rem", color: "#7d8490", marginTop: 8 }}>
-                    Tap a waste type to highlight it in the donut and compare shares at a glance.
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="db-card">
-            <div className="db-card-header db-predictions-header">
-              <div className="db-predictions-title-row">
-                <CardTitle icon={Activity}>AI Maintenance Predictions</CardTitle>
-                <span className="db-badge db-badge-green">
-                  <CircleCheck size={12} strokeWidth={2.5} aria-hidden="true" />
-                  Live / {Object.keys(predictions).length} bins
-                </span>
-              </div>
-              <Link to="/dashboard/containers" className="db-card-link">View all</Link>
-            </div>
-            {loading ? (
-              <div className="db-predictions-grid">
-                {[1, 2, 3].map(i => <div key={i} className="db-skeleton" style={{ height: 180 }} />)}
-              </div>
-            ) : bins.length === 0 ? (
-              <div style={{ textAlign: "center", padding: 34, color: "#7d8490", fontSize: ".86rem" }}>
-                No bin data yet. Start the sensor to see predictions.
-              </div>
-            ) : (
-              <div className="db-predictions-grid">
-                {bins.slice(0, 6).map(bin => (
-                  <PredCard
-                    key={bin._id}
-                    bin={bin}
-                    pred={predictions[bin._id]}
-                    scheduleTo={schedulePickupPath}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+              )}
+            </>
+          )}
 
           <div className="db-card">
             <div className="db-card-header">
