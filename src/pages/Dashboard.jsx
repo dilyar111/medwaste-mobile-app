@@ -627,6 +627,7 @@ const css = `
   }
 
   .db-donut {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -635,7 +636,18 @@ const css = `
     border-radius: 50%;
   }
 
+  .db-donut-glow {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    filter: drop-shadow(0 0 10px rgba(255,255,255,.55));
+  }
+
   .db-donut-inner {
+    position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -670,12 +682,46 @@ const css = `
     width: 100%;
   }
 
+  .db-waste-item {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .db-waste-item:focus-visible .db-waste-row,
+  .db-waste-item:hover .db-waste-row {
+    background: rgba(20,157,128,.05);
+  }
+
+  .db-waste-item.active .db-waste-row {
+    background: rgba(20,157,128,.08);
+    color: var(--db-ink);
+  }
+
+  .db-waste-item.active .db-waste-pct {
+    color: var(--db-teal-dark);
+  }
+
+  .db-waste-item.active .db-waste-bar-fill {
+    box-shadow: 0 0 0 4px rgba(20,157,128,.12);
+  }
+
   .db-waste-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
     margin-bottom: 7px;
+    padding: 6px 8px;
+    border-radius: 12px;
+    transition: background-color .2s ease, box-shadow .2s ease, color .2s ease;
   }
 
   .db-waste-label span {
@@ -1204,6 +1250,7 @@ function Dashboard() {
   const [settings, setSettings] = useState({
     autoRefresh: true, aiPredictions: true, analytics: true, compact: false,
   });
+  const [selectedWasteIndex, setSelectedWasteIndex] = useState(0);
 
   const totalBins = bins.length;
   const avgFullness = bins.length
@@ -1308,7 +1355,15 @@ function Dashboard() {
         return parts;
       }, []).join(", ")})`
     : "conic-gradient(#e7e7ef 0deg 360deg)";
+  const activeWasteIndex = wasteTypes.length ? Math.min(selectedWasteIndex, wasteTypes.length - 1) : 0;
   const primaryWaste = wasteTypes[0] || { name: "-", pct: 0 };
+  const activeWaste = wasteTypes[activeWasteIndex] || primaryWaste;
+  const activeWasteColor = wasteTypeColors[activeWasteIndex % wasteTypeColors.length];
+  const activeWasteStart = wasteTypes.slice(0, activeWasteIndex).reduce((sum, item) => sum + item.pct, 0) * 3.6;
+  const activeWasteEnd = activeWasteStart + (activeWaste?.pct || 0) * 3.6;
+  const wasteDonutGlow = wasteTypes.length
+    ? `conic-gradient(from -90deg, transparent 0deg ${activeWasteStart}deg, ${activeWasteColor}33 ${activeWasteStart}deg ${activeWasteEnd}deg, transparent ${activeWasteEnd}deg 360deg)`
+    : "none";
   const schedulePickupPath = "/dashboard/alerts";
   const showDualView = role === "personnel";
   const canManualAssign = role === "personnel";
@@ -1470,16 +1525,33 @@ function Dashboard() {
               </div>
               <div className="db-donut-wrap">
                 <div className="db-donut" style={{ background: wasteDonutBackground }}>
+                  {wasteTypes.length > 0 && (
+                    <div
+                      className="db-donut-glow"
+                      style={{
+                        background: wasteDonutGlow,
+                        opacity: 1,
+                        boxShadow: `0 0 14px ${activeWasteColor}44`,
+                      }}
+                    />
+                  )}
                   <div className="db-donut-inner">
-                    <div className="db-donut-pct">{primaryWaste.pct}%</div>
-                    <div className="db-donut-sub">{primaryWaste.name}</div>
+                    <div className="db-donut-pct">{activeWaste.pct}%</div>
+                    <div className="db-donut-sub">{activeWaste.name}</div>
                   </div>
                 </div>
                 <div className="db-waste-types">
                   {wasteTypes.length === 0 ? (
                     <div style={{ fontSize: "0.78rem", color: "#7d8490" }}>No waste type data</div>
                   ) : wasteTypes.map((waste, index) => (
-                    <div key={waste.name}>
+                    <button
+                      key={waste.name}
+                      type="button"
+                      className={`db-waste-item ${activeWasteIndex === index ? "active" : ""}`}
+                      onClick={() => setSelectedWasteIndex(index)}
+                      aria-pressed={activeWasteIndex === index}
+                      title={`Highlight ${waste.name}`}
+                    >
                       <div className="db-waste-row">
                         <div className="db-waste-label">
                           <div className="db-waste-dot" style={{ background: wasteTypeColors[index % wasteTypeColors.length] }} />
@@ -1490,10 +1562,10 @@ function Dashboard() {
                       <div className="db-waste-bar-wrap">
                         <div className="db-waste-bar-fill" style={{ width: `${waste.pct}%`, background: wasteTypeColors[index % wasteTypeColors.length] }} />
                       </div>
-                    </div>
+                    </button>
                   ))}
                   <div style={{ fontSize: "0.72rem", color: "#7d8490", marginTop: 8 }}>
-                    {totalBins} bins / {avgFullness}% avg filled
+                    Tap a waste type to highlight it in the donut and compare shares at a glance.
                   </div>
                 </div>
               </div>
