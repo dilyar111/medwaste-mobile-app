@@ -696,6 +696,16 @@ const css = `
     margin-bottom: 12px;
   }
 
+  .db-pred-head .db-badge {
+    flex: 0 0 auto;
+    align-self: center;
+    white-space: nowrap;
+  }
+
+  .db-pred-head .db-badge svg {
+    flex: 0 0 auto;
+  }
+
   .db-pred-id {
     overflow-wrap: anywhere;
     color: var(--db-ink);
@@ -921,14 +931,18 @@ const css = `
   }
 
   .db-toggle {
+    appearance: none;
+    -webkit-appearance: none;
     position: relative;
-    width: 42px;
-    height: 24px;
-    flex: 0 0 42px;
+    display: inline-flex;
+    width: 51px;
+    height: 31px;
+    flex: 0 0 51px;
+    padding: 0;
     border: 0;
     border-radius: 999px;
     cursor: pointer;
-    transition: background .2s ease;
+    transition: background-color .2s ease;
   }
 
   .db-toggle.on { background: var(--db-teal); }
@@ -937,18 +951,18 @@ const css = `
   .db-toggle::after {
     content: "";
     position: absolute;
-    top: 4px;
-    left: 4px;
-    width: 16px;
-    height: 16px;
+    top: 2px;
+    left: 2px;
+    width: 27px;
+    height: 27px;
     border-radius: 50%;
     background: #fff;
-    box-shadow: 0 2px 6px rgba(24,33,49,.18);
+    box-shadow: 0 2px 6px rgba(24,33,49,.22);
     transition: transform .2s ease;
   }
 
   .db-toggle.on::after {
-    transform: translateX(18px);
+    transform: translateX(20px);
   }
 
   .db-notifications-title {
