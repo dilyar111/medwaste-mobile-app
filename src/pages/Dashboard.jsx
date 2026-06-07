@@ -937,6 +937,8 @@ const css = `
     display: inline-flex;
     width: 51px;
     height: 31px;
+    min-height: 31px !important;
+    height: 31px !important;
     flex: 0 0 51px;
     padding: 0;
     border: 0;
