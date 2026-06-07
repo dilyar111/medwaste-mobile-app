@@ -543,23 +543,52 @@ const css = `
   .db-chart-area {
     display: flex;
     align-items: flex-end;
-    gap: 5px;
-    height: 132px;
-    margin-top: 14px;
-    padding: 10px;
-    overflow: hidden;
+    gap: 8px;
+    height: 154px;
+    margin-top: 12px;
+    padding: 12px 10px 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
     border: 1px solid var(--db-line);
     border-radius: 12px;
     background: #fbfcfd;
   }
 
+  .db-chart-note {
+    margin-top: 2px;
+    color: var(--db-muted);
+    font-size: .74rem;
+    line-height: 1.35;
+  }
+
+  .db-bar-group {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 7px;
+  }
+
   .db-bar {
-    flex: 1;
-    min-width: 3px;
+    width: 14px;
+    flex: 0 0 auto;
     border-radius: 999px 999px 2px 2px;
     background: linear-gradient(180deg, var(--db-blue), var(--db-teal));
     opacity: .76;
     transition: opacity .2s ease, transform .2s ease;
+  }
+
+  .db-bar-label {
+    width: 54px;
+    color: var(--db-muted);
+    font-size: .62rem;
+    font-weight: 800;
+    line-height: 1.1;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .db-bar:hover {
@@ -1035,7 +1064,7 @@ const css = `
       border-radius: 16px;
       padding: 14px;
     }
-    .db-chart-area { height: 118px; padding: 10px; gap: 3px; }
+    .db-chart-area { height: 154px; padding: 10px 8px 8px; gap: 8px; }
     .db-card-header {
       align-items: flex-start;
       flex-wrap: wrap;
@@ -1410,14 +1439,24 @@ function Dashboard() {
                   </div>
                 ))}
               </div>
-              <div className="db-chart-area">
+              <div className="db-chart-note">
+                Each bar is one bin. Taller bars mean a fuller container. Hover a bar to see the exact bin ID and fullness.
+              </div>
+              <div className="db-chart-area" aria-label="Fullness by bin">
                 {barHeights.map((h, i) => (
                   <div
                     key={i}
-                    className="db-bar"
-                    style={{ height: `${Math.max(h, 4)}%` }}
-                    title={bins[i] ? `${bins[i]._id}: ${bins[i].fullness}%` : `${h}%`}
-                  />
+                    className="db-bar-group"
+                    title={bins[i] ? `${bins[i].locationName || bins[i]._id}: ${bins[i].fullness}%` : `${h}%`}
+                  >
+                    <div
+                      className="db-bar"
+                      style={{ height: `${Math.max(10, Math.round(Math.max(h, 4) * 0.85))}px` }}
+                    />
+                    <div className="db-bar-label">
+                      {bins[i]?.locationName || bins[i]?._id || `Bin ${i + 1}`}
+                    </div>
+                  </div>
                 ))}
               </div>
               <div className="db-chart-legend">
