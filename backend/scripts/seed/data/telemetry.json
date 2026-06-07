@@ -1,6 +1,7 @@
 {
   "minPointsPerContainer": 96,
   "maxPointsPerContainer": 180,
+  "startDate": "2025-01-01T00:00:00.000Z",
   "daysBack": 365,
   "distributeAcrossRange": true,
   "criticalRatio": 0.22,
