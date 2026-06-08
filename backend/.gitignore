@@ -1,3 +1,44 @@
 .env
 node_modules/
 *.log
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+ai_module/venv/
+
+# ML artifacts
+ai_module/models/*
+!ai_module/models/.gitkeep
+*.pkl
+*.joblib
+*.pickle
+
+# Generated data / dumps
+*.dump
+*.sql
+*.sqlite
+*.sqlite3
+*.db
+*.csv
+*.parquet
+*.jsonl
+exports/
+uploads/
+logs/
+tmp/
+temp/
+
+# Caches
+.cache/
+coverage/
+.nyc_output/
+
+# Extra guard
+backend/node_modules/
+backend/node_modules/medwaste-frontend/
