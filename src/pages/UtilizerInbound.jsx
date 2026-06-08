@@ -327,7 +327,13 @@ export default function UtilizerInbound() {
     setError("");
     try {
       const res = await getInboundTasks();
-      setRows(Array.isArray(res.data) ? res.data : []);
+      const nextRows = Array.isArray(res.data) ? res.data : [];
+      setRows(nextRows);
+      setDisposeTask((current) => {
+        if (!current || nextRows.some((row) => row.id === current.id)) return current;
+        setActualWeight("");
+        return null;
+      });
     } catch (err) {
       setError(err.response?.data?.error || "Failed to load queue");
       setRows([]);
@@ -376,6 +382,7 @@ export default function UtilizerInbound() {
       showToast("Waste accepted and disposed");
     } catch (err) {
       showToast(err.response?.data?.error || "Failed to complete task");
+      fetchInbound();
     } finally {
       setSubmitting(false);
     }

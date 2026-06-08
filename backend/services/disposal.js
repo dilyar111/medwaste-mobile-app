@@ -26,7 +26,7 @@ async function completeTaskDisposal(task, utilizerUserId, { actualWeight, method
     throw err;
   }
 
-  if (task.status !== 'at_utilization') {
+  if (!['at_utilization', 'completed'].includes(task.status)) {
     const err = new Error('Waste must be delivered to the station before disposal (status: at_utilization)');
     err.status = 400;
     throw err;
@@ -34,12 +34,38 @@ async function completeTaskDisposal(task, utilizerUserId, { actualWeight, method
 
   const container = task.container;
   const qrCode = container?.qrCode || task.containerId;
+  const completedAt = task.completedAt || new Date();
 
-  await task.update({
-    status: 'completed',
-    completedAt: new Date(),
-    utilizerId: task.utilizerId || utilizerUserId,
-  });
+  const lastReading = qrCode
+    ? await History.findOne({ binId: qrCode }).sort({ timestamp: -1 })
+    : null;
+
+  const disposalLog = await DisposalLog.findOneAndUpdate(
+    { taskId: task.id },
+    {
+      $set: {
+        containerId: task.containerId,
+        driverId: task.driverId,
+        utilizerId: utilizerUserId,
+        wasteType: container?.wasteType,
+        weightKg,
+        actualWeight: weightKg,
+        fullness: lastReading?.fullness ?? null,
+        method,
+        notes,
+        completedAt,
+      },
+    },
+    { new: true, upsert: true, setDefaultsOnInsert: true },
+  );
+
+  if (task.status !== 'completed' || task.utilizerId !== utilizerUserId) {
+    await task.update({
+      status: 'completed',
+      completedAt,
+      utilizerId: utilizerUserId,
+    });
+  }
 
   emitRouteStatus(task.id, {
     routeId: task.id,
@@ -54,24 +80,6 @@ async function completeTaskDisposal(task, utilizerUserId, { actualWeight, method
   }
 
   await User.update({ isAvailable: true }, { where: { id: utilizerUserId } });
-
-  const lastReading = qrCode
-    ? await History.findOne({ binId: qrCode }).sort({ timestamp: -1 })
-    : null;
-
-  const disposalLog = await DisposalLog.create({
-    taskId: task.id,
-    containerId: task.containerId,
-    driverId: task.driverId,
-    utilizerId: utilizerUserId,
-    wasteType: container?.wasteType,
-    weightKg,
-    actualWeight: weightKg,
-    fullness: lastReading?.fullness ?? null,
-    method,
-    notes,
-    completedAt: new Date(),
-  });
 
   await resetContainerAfterDisposal(qrCode);
 

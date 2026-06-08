@@ -73,12 +73,16 @@ router.post('/:id/complete', authRole(['utilizer']), async (req, res) => {
       where: {
         id: req.params.id,
         companyId: user.companyId,
-        status: 'at_utilization',
+        status: { [Op.in]: ['at_utilization', 'completed'] },
       },
       include: [{ model: Container, as: 'container' }],
     });
 
     if (!task) {
+      return res.status(404).json({ error: 'Task not found in your company queue' });
+    }
+
+    if (task.status === 'completed' && task.utilizerId && task.utilizerId !== req.user.userId) {
       return res.status(404).json({ error: 'Task not found in your company queue' });
     }
 
