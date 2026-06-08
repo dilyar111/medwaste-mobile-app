@@ -1191,6 +1191,8 @@ function StatCard({ title, value, delta, deltaType = "neu", subtitle, forecast, 
 function PredCard({ bin, pred, scheduleTo }) {
   const binId = bin.qrCode || bin._id;
   const formatTs = (ts) => ts ? new Date(ts * 1000).toLocaleString() : "-";
+  const formatPct = (value) => value != null ? `${value}%` : "-";
+  const formatError = (value) => value != null ? Number(value).toFixed(2) : "-";
   return (
     <div className="db-pred-card">
       <div className="db-pred-head">
@@ -1222,12 +1224,24 @@ function PredCard({ bin, pred, scheduleTo }) {
       )}
       <div className="db-pred-confidence">
         <div className="db-pred-row">
-          <span className="db-pred-row-label">Confidence</span>
-          <span className="db-pred-row-val" style={{ color: "#0d8069" }}>{pred?.confidence ?? "-"}{pred?.confidence != null ? "%" : ""}</span>
+          <span className="db-pred-row-label">Prediction Confidence</span>
+          <span className="db-pred-row-val" style={{ color: "#0d8069" }}>{formatPct(pred?.confidence)}</span>
         </div>
         <div className="db-pred-conf-bar">
           <div className="db-pred-conf-fill" style={{ width: `${pred?.confidence ?? 0}%` }} />
         </div>
+      </div>
+      <div className="db-pred-row">
+        <span className="db-pred-row-label">Fullness Trend MAE</span>
+        <span className="db-pred-row-val">{formatError(pred?.mae)}</span>
+      </div>
+      <div className="db-pred-row">
+        <span className="db-pred-row-label">Fullness Trend RMSE</span>
+        <span className="db-pred-row-val">{formatError(pred?.rmse)}</span>
+      </div>
+      <div className="db-pred-row">
+        <span className="db-pred-row-label">Fullness Trend MAPE</span>
+        <span className="db-pred-row-val">{formatPct(pred?.mape)}</span>
       </div>
       <Link
         className="db-pred-btn"
@@ -1506,7 +1520,7 @@ function Dashboard() {
             <StatCard loading={loading} title="Total Bins" value={totalBins} delta="live" deltaType="neu" subtitle="Active in system" />
             <StatCard loading={loading} title="Average Fullness" value={`${avgFullness}%`} delta="live" deltaType={avgFullness > 70 ? "up" : "neu"} subtitle="Current average" />
             <StatCard loading={loading} title="Needs Attention" value={critical} delta={critical > 0 ? "Action" : "OK"} deltaType={critical > 0 ? "down" : "neu"} subtitle="Bins >= 80% full" forecast={critical > 0 ? `${critical} bin(s) need pickup` : "All bins normal"} />
-            <StatCard loading={loading} title="AI Confidence" value={`${avgConf}%`} delta="live" deltaType="up" subtitle="Avg prediction accuracy" />
+            <StatCard loading={loading} title="AI Confidence" value={`${avgConf}%`} delta="live" deltaType="up" subtitle="Avg prediction confidence" />
           </div>
 
           {showDualView && (

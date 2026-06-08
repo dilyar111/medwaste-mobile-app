@@ -80,6 +80,9 @@ function emptyPrediction(binId, note = 'ML service unavailable') {
     binId,
     predictedHoursToFull: null,
     confidence: null,
+    mae: null,
+    rmse: null,
+    mape: null,
     status: 'UNKNOWN',
     estimatedFullTime: null,
     note,
@@ -91,6 +94,9 @@ function normalizePrediction(binId, payload) {
 
   const predictedHoursToFull = payload.predictedHoursToFull;
   const confidence = payload.confidence;
+  const mae = payload.mae;
+  const rmse = payload.rmse;
+  const mape = payload.mape;
   const status = payload.status;
   const estimatedFullTime = payload.estimatedFullTime;
 
@@ -100,9 +106,15 @@ function normalizePrediction(binId, payload) {
     binId: payload.binId || binId,
     predictedHoursToFull: Number.isFinite(Number(predictedHoursToFull)) ? Number(predictedHoursToFull) : null,
     confidence: Number.isFinite(Number(confidence)) ? Number(confidence) : null,
+    mae: Number.isFinite(Number(mae)) ? Number(mae) : null,
+    rmse: Number.isFinite(Number(rmse)) ? Number(rmse) : null,
+    mape: Number.isFinite(Number(mape)) ? Number(mape) : null,
     status,
     estimatedFullTime: estimatedFullTime || null,
+    hours_until_full: Number.isFinite(Number(payload.hours_until_full)) ? Number(payload.hours_until_full) : null,
+    target_timestamp: Number.isFinite(Number(payload.target_timestamp)) ? Number(payload.target_timestamp) : null,
     note: payload.note || null,
+    evaluationNote: payload.evaluationNote || null,
   };
 }
 

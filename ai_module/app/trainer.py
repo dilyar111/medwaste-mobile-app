@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 
 import numpy as np
 from sklearn.linear_model import LinearRegression
@@ -32,7 +33,16 @@ class TrainedModel:
     rmse: float
     trend_strength: float
     cadence_quality: float
+    training_start_timestamp_iso: str | None = None
     fit_note: str | None = None
+
+
+@dataclass
+class EvaluationMetrics:
+    mae: float
+    rmse: float
+    mape: float
+    test_points: int
 
 
 def _dedupe_history(history: list[HistoryPoint]) -> list[HistoryPoint]:
@@ -96,9 +106,9 @@ def _fit_model(x_hours: np.ndarray, y: np.ndarray) -> tuple[LinearRegression, np
     return model, residuals, r2, rmse
 
 
-def _remove_residual_outliers(x_hours: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def _remove_residual_outliers(x_hours: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     if len(y) < MIN_TRAINING_POINTS + 3:
-        return x_hours, y
+        return x_hours, y, np.ones(len(y), dtype=bool)
 
     _, residuals, _, _ = _fit_model(x_hours, y)
     center = float(np.median(residuals))
@@ -109,9 +119,9 @@ def _remove_residual_outliers(x_hours: np.ndarray, y: np.ndarray) -> tuple[np.nd
     mask = absolute_deviation <= threshold
 
     if int(np.sum(mask)) < MIN_TRAINING_POINTS:
-        return x_hours, y
+        return x_hours, y, np.ones(len(y), dtype=bool)
 
-    return x_hours[mask], y[mask]
+    return x_hours[mask], y[mask], mask
 
 
 def _sample_quality(point_count: int) -> float:
@@ -147,7 +157,8 @@ def train_linear_regression(history: list[HistoryPoint]) -> tuple[TrainedModel |
     if float(np.max(y) - np.min(y)) < MIN_FULLNESS_RANGE:
         return None, "Fullness variation is too small to estimate a reliable trend"
 
-    x_hours, y = _remove_residual_outliers(x_hours, y)
+    x_hours, y, outlier_mask = _remove_residual_outliers(x_hours, y)
+    filtered_cycle = [point for point, keep in zip(cycle, outlier_mask) if keep]
     x_hours = x_hours - float(x_hours[0])
     observed_hours = float(x_hours[-1] - x_hours[0])
 
@@ -192,5 +203,49 @@ def train_linear_regression(history: list[HistoryPoint]) -> tuple[TrainedModel |
         rmse=rmse,
         trend_strength=trend_strength,
         cadence_quality=cadence_quality,
+        training_start_timestamp_iso=filtered_cycle[0].timestamp.isoformat(),
         fit_note=note,
+    ), None
+
+
+def evaluate_time_holdout(history: list[HistoryPoint]) -> tuple[EvaluationMetrics | None, str | None]:
+    ordered = _dedupe_history(history)
+    if len(ordered) < MIN_TRAINING_POINTS + 1:
+        return None, f"Need at least {MIN_TRAINING_POINTS + 1} unique telemetry points for holdout evaluation"
+
+    split_index = int(len(ordered) * 0.8)
+    split_index = max(MIN_TRAINING_POINTS, min(split_index, len(ordered) - 1))
+    train_history = ordered[:split_index]
+    test_history = ordered[split_index:]
+
+    trained, train_note = train_linear_regression(train_history)
+    if trained is None:
+        return None, train_note or "Unable to train holdout evaluation model"
+
+    training_start_iso = getattr(trained, "training_start_timestamp_iso", None)
+    if not training_start_iso:
+        return None, "Holdout evaluation requires a training start timestamp"
+
+    training_start = datetime.fromisoformat(training_start_iso)
+    x_test = np.array(
+        [(point.timestamp - training_start).total_seconds() / 3600.0 for point in test_history],
+        dtype=float,
+    ).reshape(-1, 1)
+    y_true = np.array([float(point.fullness) for point in test_history], dtype=float)
+    y_pred = trained.model.predict(x_test)
+    errors = y_true - y_pred
+    absolute_errors = np.abs(errors)
+
+    mae = float(np.mean(absolute_errors))
+    rmse = float(np.sqrt(np.mean(errors ** 2)))
+    non_zero_mask = np.abs(y_true) > 1e-9
+    if int(np.sum(non_zero_mask)) == 0:
+        return None, "MAPE cannot be calculated when all holdout fullness values are zero"
+
+    mape = float(np.mean(absolute_errors[non_zero_mask] / np.abs(y_true[non_zero_mask])) * 100.0)
+    return EvaluationMetrics(
+        mae=round(mae, 2),
+        rmse=round(rmse, 2),
+        mape=round(mape, 2),
+        test_points=len(test_history),
     ), None

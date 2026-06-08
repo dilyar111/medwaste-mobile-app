@@ -53,9 +53,13 @@ class PredictionResponse(BaseModel):
     binId: str
     predictedHoursToFull: float | None
     confidence: float | None
+    mae: float | None = None
+    rmse: float | None = None
+    mape: float | None = None
     status: str
     estimatedFullTime: datetime | None
     hours_until_full: float | None = None
     target_timestamp: float | None = None
     is_critical: bool = False
     note: str | None = None
+    evaluationNote: str | None = None

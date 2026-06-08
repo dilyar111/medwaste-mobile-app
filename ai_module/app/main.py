@@ -59,12 +59,16 @@ async def predict(payload: PredictionRequest) -> PredictionResponse:
             binId=payload.binId,
             predictedHoursToFull=None,
             confidence=None,
+            mae=None,
+            rmse=None,
+            mape=None,
             status=status,
             estimatedFullTime=None,
             hours_until_full=None,
             target_timestamp=None,
             is_critical=status == "CRITICAL",
             note=note,
+            evaluationNote=None,
         )
 
     result = predict_time_to_full(trained, payload.history)
@@ -81,10 +85,14 @@ async def predict(payload: PredictionRequest) -> PredictionResponse:
         binId=payload.binId,
         predictedHoursToFull=result["predictedHoursToFull"],
         confidence=result["confidence"],
+        mae=result["mae"],
+        rmse=result["rmse"],
+        mape=result["mape"],
         status=result["status"],
         estimatedFullTime=estimated,
         hours_until_full=result["predictedHoursToFull"],
         target_timestamp=estimated.timestamp() if estimated else None,
         is_critical=result["status"] == "CRITICAL",
         note=result["note"],
+        evaluationNote=result["evaluationNote"],
     )

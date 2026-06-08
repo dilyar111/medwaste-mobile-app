@@ -6,7 +6,7 @@ from typing import Any
 import joblib
 
 from .schemas import HistoryPoint
-from .trainer import MODEL_VERSION, TrainedModel, train_linear_regression
+from .trainer import MODEL_VERSION, TrainedModel, evaluate_time_holdout, train_linear_regression
 from .utils import MODEL_DIR, MODEL_PATH, clamp_confidence, history_signature, logger, status_from_fullness
 
 
@@ -67,6 +67,13 @@ def predict_time_to_full(trained: TrainedModel, history: list[HistoryPoint]) -> 
     latest = ordered[-1]
     latest_fullness = float(latest.fullness)
     status = status_from_fullness(latest_fullness)
+    evaluation, evaluation_note = evaluate_time_holdout(history)
+    metrics = {
+        "mae": evaluation.mae if evaluation else None,
+        "rmse": evaluation.rmse if evaluation else None,
+        "mape": evaluation.mape if evaluation else None,
+        "evaluationNote": evaluation_note,
+    }
 
     slope_per_hour = float(getattr(trained, "slope_per_hour", 0.0))
     if slope_per_hour <= 0:
@@ -76,6 +83,7 @@ def predict_time_to_full(trained: TrainedModel, history: list[HistoryPoint]) -> 
             "status": status,
             "estimatedFullTime": None,
             "note": "Fullness trend is flat or decreasing",
+            **metrics,
         }
 
     remaining = max(0.0, 100.0 - latest_fullness)
@@ -96,6 +104,7 @@ def predict_time_to_full(trained: TrainedModel, history: list[HistoryPoint]) -> 
         "status": status_from_fullness(100 if seconds_to_full == 0 else latest_fullness),
         "estimatedFullTime": estimated_full_time,
         "note": note,
+        **metrics,
     }
 
 
