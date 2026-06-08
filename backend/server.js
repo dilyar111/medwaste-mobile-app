@@ -78,6 +78,23 @@ app.use('/api/contact', require('./routes/contact'));
 const PORT = Number(process.env.PORT) || 5000;
 const HOST = process.env.HOST || '0.0.0.0';
 
+function listenServer(port, host) {
+  return new Promise((resolve, reject) => {
+    const onError = (err) => {
+      server.off('listening', onListening);
+      reject(err);
+    };
+    const onListening = () => {
+      server.off('error', onError);
+      resolve();
+    };
+
+    server.once('error', onError);
+    server.once('listening', onListening);
+    server.listen(port, host);
+  });
+}
+
 async function start() {
   logMlStatus();
 
@@ -91,12 +108,18 @@ async function start() {
     await connectRedis();
   }
 
-  server.listen(PORT, HOST, () => {
-    console.log(`🚀 Server listening on ${HOST}:${PORT}`);
-  });
+  await listenServer(PORT, HOST);
+  console.log(`🚀 Server listening on ${HOST}:${PORT}`);
 }
 
 start().catch((err) => {
+  if (err?.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use. Stop the old backend process, or change PORT in backend/.env and VITE_API_URL in .env to the same new port.`);
+    console.error(`   Windows: netstat -ano | findstr :${PORT}`);
+    console.error('   Then stop the PID shown in the last column: Stop-Process -Id <PID>');
+    process.exit(1);
+  }
+
   console.error('❌ Server failed to start:', err);
   process.exit(1);
 });

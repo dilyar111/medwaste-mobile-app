@@ -1,7 +1,7 @@
 const { Sequelize } = require('sequelize');
 const mongoose = require('mongoose');
 const redis = require('redis');
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 const postgresUri = process.env.POSTGRES_URI || process.env.DATABASE_URL;
 

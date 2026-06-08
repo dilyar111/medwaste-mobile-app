@@ -1,14 +1,42 @@
 const router = require('express').Router();
 const History = require('../models/mongo/History');
 const Alert = require('../models/Alert');
+const Notification = require('../models/Notification');
 const Container = require('../models/pg/Container');
 const Task = require('../models/pg/Task');
+const User = require('../models/pg/User');
 const { autoAssignDriver } = require('../services/autoAssign');
 const { checkTelemetryRateLimit } = require('../services/redis');
 const { sendEmailAlert } = require('../services/email');
-const { emitTelemetry, emitAlert } = require('../services/Socket');
+const { emitTelemetry, emitAlert, emitNotification } = require('../services/Socket');
 const { Op } = require('sequelize');
 const { hasValidCoordinates, normalizeQrCode } = require('../utils/containerValidation');
+
+async function notifyAlertSubscribers(container, alert) {
+  const recipients = await User.findAll({
+    attributes: ['id'],
+    where: {
+      companyId: container.companyId,
+      role: { [Op.in]: ['admin', 'personnel'] },
+    },
+  });
+
+  if (!recipients.length) return;
+
+  const docs = await Notification.insertMany(
+    recipients.map((user) => ({
+      userId: user.id,
+      title: alert.title,
+      message: alert.message,
+      type: 'error',
+      read: false,
+      createdAt: new Date(),
+    })),
+    { ordered: false },
+  );
+
+  docs.forEach((doc) => emitNotification(doc.userId, doc));
+}
 
 // POST /api/telemetry
 router.post('/', async (req, res) => {
@@ -44,7 +72,16 @@ router.post('/', async (req, res) => {
       return res.status(429).json({ message: 'Rate limited' });
     }
 
-    const entry = await new History({ binId, fullness }).save();
+    let recordedAt = new Date();
+    if (req.body.timestamp != null && req.body.timestamp !== '') {
+      const parsed = new Date(req.body.timestamp);
+      if (Number.isNaN(parsed.getTime())) {
+        return res.status(400).json({ error: 'timestamp must be a valid ISO date string' });
+      }
+      recordedAt = parsed;
+    }
+
+    const entry = await new History({ binId, fullness, timestamp: recordedAt }).save();
     emitTelemetry(binId, fullness, entry.timestamp);
     console.log(`Telemetry stored: ${binId} fullness=${fullness} timestamp=${entry.timestamp.toISOString()}`);
 
@@ -60,6 +97,7 @@ router.post('/', async (req, res) => {
           timestamp: new Date(),
         });
         emitAlert(alert);
+        await notifyAlertSubscribers(container, alert);
         await sendEmailAlert(binId, fullness);
       }
 

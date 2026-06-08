@@ -92,11 +92,11 @@ def predict_time_to_full(trained: TrainedModel, history: list[HistoryPoint]) -> 
     estimated_full_time = latest.timestamp + timedelta(seconds=seconds_to_full)
     observed_hours = max(float(getattr(trained, "observed_hours", 0.0)), 0.0)
     horizon_quality = 1.0 if hours_to_full == 0 else (observed_hours * 2.0) / ((observed_hours * 2.0) + hours_to_full)
-    confidence = clamp_confidence(float(trained.confidence) * max(0.0, min(1.0, horizon_quality)))
+    confidence = clamp_confidence(float(trained.confidence))
 
     note = getattr(trained, "fit_note", None)
     if note is None and horizon_quality < 0.35:
-        note = "Low confidence: forecast horizon is much longer than the observed fill trend"
+        note = "Forecast horizon is longer than the observed fill trend"
 
     return {
         "predictedHoursToFull": round(seconds_to_full / 3600.0, 2),

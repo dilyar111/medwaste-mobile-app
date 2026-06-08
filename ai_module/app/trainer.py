@@ -10,7 +10,7 @@ from .schemas import HistoryPoint
 from .utils import clamp_confidence
 
 
-MODEL_VERSION = 2
+MODEL_VERSION = 3
 MIN_TRAINING_POINTS = 6
 MAX_TRAINING_POINTS = 30
 RESET_DROP_PERCENT = 12.0

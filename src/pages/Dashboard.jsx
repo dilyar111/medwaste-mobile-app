@@ -1191,7 +1191,14 @@ function StatCard({ title, value, delta, deltaType = "neu", subtitle, forecast, 
 function PredCard({ bin, pred, scheduleTo }) {
   const binId = bin.qrCode || bin._id;
   const formatTs = (ts) => ts ? new Date(ts * 1000).toLocaleString() : "-";
-  const formatPct = (value) => value != null ? `${value}%` : "-";
+  const rawConfidence = pred?.confidence;
+  const numericConfidence = rawConfidence === null || rawConfidence === undefined || rawConfidence === ""
+    ? null
+    : Number(rawConfidence);
+  const confidence = Number.isFinite(numericConfidence)
+    ? Math.max(0, Math.min(100, Math.round(numericConfidence)))
+    : null;
+  const formatPct = (value) => value != null && Number.isFinite(Number(value)) ? `${Math.round(Number(value))}%` : "-";
   const formatError = (value) => value != null ? Number(value).toFixed(2) : "-";
   return (
     <div className="db-pred-card">
@@ -1225,10 +1232,10 @@ function PredCard({ bin, pred, scheduleTo }) {
       <div className="db-pred-confidence">
         <div className="db-pred-row">
           <span className="db-pred-row-label">Prediction Confidence</span>
-          <span className="db-pred-row-val" style={{ color: "#0d8069" }}>{formatPct(pred?.confidence)}</span>
+          <span className="db-pred-row-val" style={{ color: "#0d8069" }}>{formatPct(confidence)}</span>
         </div>
         <div className="db-pred-conf-bar">
-          <div className="db-pred-conf-fill" style={{ width: `${pred?.confidence ?? 0}%` }} />
+          <div className="db-pred-conf-fill" style={{ width: `${confidence ?? 0}%` }} />
         </div>
       </div>
       <div className="db-pred-row">
@@ -1305,10 +1312,16 @@ function Dashboard() {
     ? Math.round(bins.reduce((s, b) => s + (Number(b.fullness) || 0), 0) / bins.length)
     : 0;
   const critical = bins.filter(b => (Number(b.fullness) || 0) >= 80).length;
-  const predictionValues = Object.values(predictions).filter((p) => p?.confidence != null);
+  const predictionValues = Object.values(predictions)
+    .map((p) => p?.confidence)
+    .filter((confidence) => confidence !== null && confidence !== undefined && confidence !== "")
+    .map(Number)
+    .filter(Number.isFinite)
+    .map((confidence) => Math.max(0, Math.min(100, confidence)));
   const avgConf = predictionValues.length
-    ? Math.round(predictionValues.reduce((s, p) => s + (Number(p.confidence) || 0), 0) / predictionValues.length)
-    : 0;
+    ? Math.round(predictionValues.reduce((s, confidence) => s + confidence, 0) / predictionValues.length)
+    : null;
+  const avgConfLabel = avgConf == null ? "-" : `${avgConf}%`;
   const wasteTypes = Object.values(bins.reduce((acc, bin) => {
     const key = bin.wasteType || "Unknown";
     acc[key] = acc[key] || { name: key, count: 0 };
@@ -1520,7 +1533,7 @@ function Dashboard() {
             <StatCard loading={loading} title="Total Bins" value={totalBins} delta="live" deltaType="neu" subtitle="Active in system" />
             <StatCard loading={loading} title="Average Fullness" value={`${avgFullness}%`} delta="live" deltaType={avgFullness > 70 ? "up" : "neu"} subtitle="Current average" />
             <StatCard loading={loading} title="Needs Attention" value={critical} delta={critical > 0 ? "Action" : "OK"} deltaType={critical > 0 ? "down" : "neu"} subtitle="Bins >= 80% full" forecast={critical > 0 ? `${critical} bin(s) need pickup` : "All bins normal"} />
-            <StatCard loading={loading} title="AI Confidence" value={`${avgConf}%`} delta="live" deltaType="up" subtitle="Avg prediction confidence" />
+            <StatCard loading={loading} title="AI Confidence" value={avgConfLabel} delta={avgConf == null ? "waiting" : "live"} deltaType={avgConf == null ? "neu" : "up"} subtitle="Avg prediction confidence" />
           </div>
 
           {showDualView && (
@@ -1545,7 +1558,7 @@ function Dashboard() {
                       { val: totalBins, label: "Total bins" },
                       { val: `${avgFullness}%`, label: "Avg fullness" },
                       { val: critical, label: "Critical (>=80%)" },
-                      { val: `${avgConf}%`, label: "AI confidence" },
+                      { val: avgConfLabel, label: "AI confidence" },
                     ].map(m => (
                       <div className="db-analytics-item" key={m.label}>
                         <div className="db-analytics-val">{loading ? "-" : m.val}</div>

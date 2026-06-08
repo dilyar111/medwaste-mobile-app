@@ -92,6 +92,11 @@ function emptyPrediction(binId, note = 'ML service unavailable') {
 function normalizePrediction(binId, payload) {
   if (!payload || typeof payload !== 'object') return null;
 
+  const nullableNumber = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+    return Number.isFinite(Number(value)) ? Number(value) : null;
+  };
+
   const predictedHoursToFull = payload.predictedHoursToFull;
   const confidence = payload.confidence;
   const mae = payload.mae;
@@ -104,15 +109,15 @@ function normalizePrediction(binId, payload) {
 
   return {
     binId: payload.binId || binId,
-    predictedHoursToFull: Number.isFinite(Number(predictedHoursToFull)) ? Number(predictedHoursToFull) : null,
-    confidence: Number.isFinite(Number(confidence)) ? Number(confidence) : null,
-    mae: Number.isFinite(Number(mae)) ? Number(mae) : null,
-    rmse: Number.isFinite(Number(rmse)) ? Number(rmse) : null,
-    mape: Number.isFinite(Number(mape)) ? Number(mape) : null,
+    predictedHoursToFull: nullableNumber(predictedHoursToFull),
+    confidence: nullableNumber(confidence),
+    mae: nullableNumber(mae),
+    rmse: nullableNumber(rmse),
+    mape: nullableNumber(mape),
     status,
     estimatedFullTime: estimatedFullTime || null,
-    hours_until_full: Number.isFinite(Number(payload.hours_until_full)) ? Number(payload.hours_until_full) : null,
-    target_timestamp: Number.isFinite(Number(payload.target_timestamp)) ? Number(payload.target_timestamp) : null,
+    hours_until_full: nullableNumber(payload.hours_until_full),
+    target_timestamp: nullableNumber(payload.target_timestamp),
     note: payload.note || null,
     evaluationNote: payload.evaluationNote || null,
   };
